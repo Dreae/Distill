@@ -3,7 +3,7 @@ from Distill.helpers import cached_property, parse_query_string
 
 
 class Request(object):
-    def __init__(self, env, settings):
+    def __init__(self, env, settings=None):
         self.settings = settings
         self.env = env
 
@@ -39,8 +39,6 @@ class Request(object):
         if self.content_type and "application/x-www-form-urlencoded" in self.content_type:
             data = self.stream.read(self.content_length)
             self.POST = parse_query_string(data)
-        elif self.content_type and "multipart/form-data" in self.content_type:
-            self.POST = {}
         else:
             self.POST = {}
 
@@ -58,7 +56,7 @@ class Request(object):
         if 'HTTP_HOST' in self.env:
             return self.env['HTTP_HOST']
         else:
-            return self.env['SERVER_NAME']
+            return "{0}:{1}".format(self.env['SERVER_NAME'], self.port)
 
     @property
     def port(self):
@@ -73,4 +71,4 @@ class Request(object):
         return self.env['REQUEST_METHOD']
 
     def get_url(self, path):
-        return "{0}://{1}/{2}{3}".format(self.scheme, self.server, self.location, path.strip("/"))
+        return "{0}://{1}{2}{3}".format(self.scheme, self.server, self.location, path)

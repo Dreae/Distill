@@ -7,7 +7,7 @@ import time
 import sys
 
 
-class cached_property(object):
+class cached_property(object):  # pragma: no cover
     '''Decorator for read-only properties evaluated only once within TTL period.
 
     It can be used to created a cached property like this::
@@ -67,7 +67,7 @@ class cached_property(object):
 
 _QS_RE = re.compile(r'([A-z][A-z0-9_\-\.]*)=([^&]+)')
 _HEX = '0123456789abcdef'
-_HEX_TO_BYTE = dict((chr(int(a + b, 16)), bytes([int(a + b, 16)])) for a in _HEX for b in _HEX)
+_HEX_TO_BYTE = dict((a + b, chr(int(a + b, 16))) for a in _HEX for b in _HEX)
 
 
 def parse_query_string(query):
@@ -86,7 +86,7 @@ def url_decode(string):
         return decoded_uri
 
     if sys.version_info < (3,0):
-        if type(decoded_uri, str):
+        if type(decoded_uri) == str:
             decoded_uri = decoded_uri.encode('utf-8')
 
     tokens = decoded_uri.split('%')

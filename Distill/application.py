@@ -2,10 +2,10 @@ import inspect
 import os
 import sys
 from Distill import PY3
-from Distill.exceptions import HTTPNotFound
+from Distill.exceptions import HTTPNotFound, HTTPErrorResponse
 from Distill.request import Request
 from Distill.response import Response
-from Distill.templates import template_settings
+from Distill.renderers import RenderFactory
 
 
 class Distill(object):
@@ -23,11 +23,11 @@ class Distill(object):
         self.settings = settings
         self._before = before
         self._after = after
-        self._rsp_listeners = {a[1].distill_listens_for: a[1] for a in
+        self._exc_listeners = {a[1].distill_handles_exception: a[1] for a in
                                inspect.getmembers(self.base_node,
-                                                  lambda mem: hasattr(mem, "distill_listens_for"))}
+                                                  lambda mem: hasattr(mem, "distill_handles_exception"))}
 
-        template_settings(settings)
+        RenderFactory.create(settings)
 
     def __call__(self, env, start_response):
         """ Excpected WSGI method
@@ -36,6 +36,31 @@ class Distill(object):
         the root node to the required view node
         """
         req = Request(env, self.settings)
+        try:
+            resp = self._request(env, req)
+        except HTTPErrorResponse as ex:
+            if self._exc_listeners and resp.__class__ in self._exc_listeners:
+                res = self._exc_listeners[resp.__class__](req, resp)
+                if isinstance(res, Response):
+                    ex = res
+                else:
+                    ex.body = str(res)
+
+            start_response(ex.status, ex.wsgi_headers, sys.exc_info())
+            ex.finalize(env.get('wsgi.file_wrapper'))
+            return ex.iterable
+
+        start_response(resp.status, resp.wsgi_headers)
+        return resp.iterable
+
+    def _request(self, env, req):
+        """ Processes the request
+         Notes:
+            This method acts as a wrapper to easy exception handling
+
+        Args:
+            env: The wsgi environ variable
+        """
         resp = Response()
 
         if self._before:
@@ -49,26 +74,19 @@ class Distill(object):
             else:
                 res = context.on_post(req, resp)
             if isinstance(res, Response):
+                if isinstance(res, HTTPErrorResponse):
+                    raise res
                 resp = res
             else:
                 resp.body = str(res)
         else:
-            resp = HTTPNotFound()
-
-        if self._rsp_listeners and resp.__class__ in self._rsp_listeners:
-            res = self._rsp_listeners[resp.__class__](req, resp)
-            if isinstance(res, Response):
-                resp = res
-            else:
-                resp.body = str(res)
+            raise HTTPNotFound()
 
         if self._after:
             self._after(req, resp)
 
         resp.finalize(env.get('wsgi.file_wrapper'))
-
-        start_response(resp.status, resp.wsgi_headers)
-        return resp.iterable
+        return resp
 
     def _traverse(self, req):
         p = req.path.strip("/").split("/")
@@ -83,20 +101,22 @@ class Distill(object):
                 return None
         return context
 
+    @staticmethod
+    def add_renderer(name, serializer):
+        RenderFactory.add_renderer(name, serializer)
 
-def response_listener(response):
-    """ Decorator for listening for response types
+
+def excepion_responder(exception):
+    """ Decorator for listening for exceptions
 
     Notes:
-        This decorator allows you to define methods that are called after view
-        execution on specific response types.  Particularly usefull for defining
-        custom error responses
+        This decorator allows you to define methods that are called after the
+        application catches an exception of a certain type
 
     Args:
-        response: The type of response to listen for.  Ex: HTTPNotFoundResponse
+        response: The type of exception to listen for.  Ex: HTTPNotFound
     """
     def _listen(method):
-        method.distill_listens_for = response
+        method.distill_handles_exception = exception
         return method
-
     return _listen

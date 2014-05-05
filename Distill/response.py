@@ -12,7 +12,7 @@ class Response(object):
 
     @property
     def wsgi_headers(self):
-        if PY3:
+        if PY3: # pragma: no cover
             return list(self.headers.items())
         return self.headers.items()
 
@@ -23,9 +23,9 @@ class Response(object):
             if self.file_len:
                 self.headers['Content-Length'] = str(self.file_len)
         if self.body:
-            if PY3:
+            if PY3:  # pragma: no cover
                 self.iterable = [bytes(self.body, 'utf-8')]
-            else:
+            else:  # pragmo: no cover
                 self.iterable = [self.body]
         elif self.file:
             if wsgi_file_wrapper:

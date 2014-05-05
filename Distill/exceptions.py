@@ -2,18 +2,19 @@ import json
 from Distill.response import Response
 
 
-class HTTPErrorResponse(Response):
+class HTTPErrorResponse(Response, Exception):
     def __init__(self, status, title, description=None):
         super(HTTPErrorResponse, self).__init__(status)
         self.status = status
         self.title = title
         self.description = description
+        self.headers['Content-Type'] = 'application/json'
         self.body = json.dumps({"title": self.title, "description": self.description})
 
 
 class HTTPMovedPermanently(HTTPErrorResponse):
     def __init__(self, location="/", title="301 Moved Permanently", description="Resource has moved"):
-        super(HTTPMovedPermanently, self).__init__(self, "500 Moved Permanently", title, description)
+        super(HTTPMovedPermanently, self).__init__("301 Moved Permanently", title, description)
         self.headers['Location'] = location
         self.body = "<a href='%s'>%s</a>" % (location, location)
 

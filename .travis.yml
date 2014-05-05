@@ -1,0 +1,10 @@
+language: python
+install: pip install mako coveralls
+script: setup.py test
+after_success: coveralls
+notifications:
+  email:
+    - dreae@dreaescantina.com
+  irc:
+    channels:
+      -  "irc.alphachat.net#dreaescantina"
