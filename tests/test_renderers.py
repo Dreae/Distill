@@ -47,16 +47,17 @@ class TestRenderers(unittest.TestCase):
             fake_on_get_non_json_obj(None, None, None)
 
     def test_file_templates(self):
-        RenderFactory.create({'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
+        RenderFactory.create(
+            {'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
 
-        @renderer('foo.mako')
+        @renderer('test.mako')
         def fake_on_get_json(this, request, response):
             return {"user": "Foobar"}
 
         resp = Response()
         rendered = fake_on_get_json(None, None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'text/html')
-        self.assertEqual(rendered, 'Hello Foobar')
+        self.assertEqual(rendered, 'Hello Foobar!')
 
     def test_add_renderer(self):
         RenderFactory.create({})
@@ -70,6 +71,7 @@ class TestRenderers(unittest.TestCase):
                 return str(data)
 
         RenderFactory.add_renderer('text2', TextRenderer())
+
         @renderer('text2')
         def fake_on_get(this, request, response):
             return "Hello world"
@@ -81,4 +83,5 @@ class TestRenderers(unittest.TestCase):
 
 
 def suite():
-    return unittest.TestSuite(map(TestRenderers, ['test_default_renderers', 'test_file_templates', 'test_add_renderer']))
+    return unittest.TestSuite(
+        map(TestRenderers, ['test_default_renderers', 'test_file_templates', 'test_add_renderer']))
