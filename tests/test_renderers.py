@@ -81,7 +81,17 @@ class TestRenderers(unittest.TestCase):
         self.assertEqual(resp.headers['Content-Type'], 'text/plain')
         self.assertEqual(rendered, 'Hello world')
 
+    def test_no_template(self):
+        RenderFactory.create({})
+
+        @renderer('foobar')
+        def fake_on_get(this, request, response):
+            return "How did I get here?"
+
+        with self.assertRaises(HTTPInternalServerError):
+            fake_on_get(None, None, None)
+
 
 def suite():
     return unittest.TestSuite(
-        map(TestRenderers, ['test_default_renderers', 'test_file_templates', 'test_add_renderer']))
+        map(TestRenderers, ['test_default_renderers', 'test_file_templates', 'test_add_renderer', 'test_no_template']))

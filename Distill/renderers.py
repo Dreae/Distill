@@ -23,6 +23,7 @@ class RenderFactory(object):
             return self._template_lookup.get_template(template).render(**data)
         elif template in self._renderers:
             return self._renderers[template](data, request, response)
+        raise HTTPInternalServerError(description="Missing template file {0}".format(template))
 
     def register_renderer(self, name, serializer):
         self._renderers[name] = serializer

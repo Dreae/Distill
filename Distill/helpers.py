@@ -5,6 +5,7 @@ import re
 
 import time
 import sys
+from Distill import PY2
 
 
 class cached_property(object):  # pragma: no cover
@@ -85,7 +86,7 @@ def url_decode(string):
     if '%' not in decoded_uri:
         return decoded_uri
 
-    if sys.version_info < (3,0):
+    if PY2:  # pragma: no cover
         if type(decoded_uri) == str:
             decoded_uri = decoded_uri.encode('utf-8')
 

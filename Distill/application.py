@@ -39,16 +39,18 @@ class Distill(object):
         try:
             resp = self._request(env, req)
         except HTTPErrorResponse as ex:
-            if self._exc_listeners and resp.__class__ in self._exc_listeners:
-                res = self._exc_listeners[resp.__class__](req, resp)
+            if self._exc_listeners and ex.__class__ in self._exc_listeners:
+                resp = Response(ex.status, ex.headers)
+                res = self._exc_listeners[ex.__class__](req, resp)
                 if isinstance(res, Response):
-                    ex = res
+                    resp = res
                 else:
-                    ex.body = str(res)
-
-            start_response(ex.status, ex.wsgi_headers, sys.exc_info())
-            ex.finalize(env.get('wsgi.file_wrapper'))
-            return ex.iterable
+                    resp.body = str(res)
+                resp.finalize(env.get('wsgi.file_wrapper'))
+                start_response(resp.status, resp.wsgi_headers)
+                return resp.iterable
+            else:
+                start_response(ex.status, ex.wsgi_headers, sys.exc_info())
 
         start_response(resp.status, resp.wsgi_headers)
         return resp.iterable
@@ -106,7 +108,7 @@ class Distill(object):
         RenderFactory.add_renderer(name, serializer)
 
 
-def excepion_responder(exception):
+def exception_responder(exception):
     """ Decorator for listening for exceptions
 
     Notes:

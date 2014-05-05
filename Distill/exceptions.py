@@ -3,7 +3,7 @@ from Distill.response import Response
 
 
 class HTTPErrorResponse(Response, Exception):
-    def __init__(self, status, title, description=None):
+    def __init__(self, status, title=None, description=None):
         super(HTTPErrorResponse, self).__init__(status)
         self.status = status
         self.title = title

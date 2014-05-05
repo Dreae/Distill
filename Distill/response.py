@@ -2,9 +2,9 @@ from Distill import PY3
 
 
 class Response(object):
-    def __init__(self, status="200 OK"):
+    def __init__(self, status="200 OK", headers={}):
         self.status = status
-        self.headers = {}
+        self.headers = headers
         self.body = None
         self.file = None
         self.file_len = None
