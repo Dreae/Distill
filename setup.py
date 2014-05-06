@@ -10,5 +10,5 @@ setup(
     author_email='penitenttangentt@gmail.com',
     description='Just another python web framework',
     requires=['mako'],
-    test_suite='nose.collector'
+    test_suite='nose.collector',
 )
