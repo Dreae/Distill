@@ -106,19 +106,3 @@ class Distill(object):
     @staticmethod
     def add_renderer(name, serializer):
         RenderFactory.add_renderer(name, serializer)
-
-
-def exception_responder(exception):
-    """ Decorator for listening for exceptions
-
-    Notes:
-        This decorator allows you to define methods that are called after the
-        application catches an exception of a certain type
-
-    Args:
-        response: The type of exception to listen for.  Ex: HTTPNotFound
-    """
-    def _listen(method):
-        method.distill_handles_exception = exception
-        return method
-    return _listen

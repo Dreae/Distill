@@ -14,7 +14,7 @@ class Response(object):
     def wsgi_headers(self):
         if PY3: # pragma: no cover
             return list(self.headers.items())
-        return self.headers.items()
+        return self.headers.items() # pragma: no cover
 
     def finalize(self, wsgi_file_wrapper):
         if self.body:
@@ -25,7 +25,7 @@ class Response(object):
         if self.body:
             if PY3:  # pragma: no cover
                 self.iterable = [bytes(self.body, 'utf-8')]
-            else:  # pragmo: no cover
+            else:  # pragma: no cover
                 self.iterable = [self.body]
         elif self.file:
             if wsgi_file_wrapper:

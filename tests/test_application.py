@@ -2,9 +2,9 @@ import os
 import unittest
 import json
 from io import StringIO
-from Distill import PY3
+from Distill.decorators import exception_responder, before, after
 from Distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
-from Distill.application import Distill, exception_responder
+from Distill.application import Distill
 from Distill.renderers import renderer, JSON
 from Distill.response import Response
 
@@ -46,9 +46,20 @@ class Website(object):
             raise HTTPInternalServerError()
         return User(item)
 
+    def do_before(self, request, response):
+        response.headers['X-Before'] = 'true'
+
+    def do_after(self, request, response):
+        response.headers['X-After'] = 'true'
+
+    @before(do_before)
+    @after(do_after)
     @renderer('site.mako')
     def on_get(self, request, response):
         return {}
+
+    def do_after(self, request, response):
+        response.headers['X-After'] = 'true'
 
     @renderer('login.mako')
     def on_post(self, request, response):
@@ -72,7 +83,9 @@ class TestApplication(unittest.TestCase):
                       settings={
                           'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
         app.add_renderer('prettyjson', JSON(indent=4))
-        self.simulate_request(app, 'GET', '', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '', None, u'')
+        self.assertIn('X-Before', resp.headers)
+        self.assertIn('X-After', resp.headers)
         with self.assertRaises(HTTPNotFound):
             self.simulate_request(app, 'GET', '/foo/bar/baz', None, u'')
 
