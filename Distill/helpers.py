@@ -72,6 +72,7 @@ _HEX_TO_BYTE = dict((a + b, chr(int(a + b, 16))) for a in _HEX for b in _HEX)
 
 
 def parse_query_string(query):
+    """Parses an HTTP query string into a dict"""
     params = {}
     for k, v in _QS_RE.findall(query):
         params[k] = url_decode(v)
@@ -80,6 +81,17 @@ def parse_query_string(query):
 
 
 def url_decode(string):
+    """ Decodes the URL encoded string
+
+     Notes:
+        This function runs considerablly faster than
+        the one provided in urllib.  The returned string
+        will include any unicode bytes in the string as if
+        the user had used string.encode('utf-8')
+
+    Args:
+        string: The string to be decoded
+    """
     decoded_uri = string
     if '+' in decoded_uri:
         decoded_uri = decoded_uri.replace('+', ' ')

@@ -1,9 +1,20 @@
-import urllib
 from Distill.helpers import cached_property, parse_query_string
 
 
 class Request(object):
     def __init__(self, env, settings=None):
+        """ Init
+         Notes:
+            Parses all relavent environ variables and stores
+            them on the request
+
+        Args:
+            env: The wsgi environ variable
+            settings: The application's settings dict
+        """
+
+        if settings is None:
+            settings = {}
         self.settings = settings
         self.env = env
 
@@ -43,6 +54,12 @@ class Request(object):
 
     @cached_property(ttl=0)
     def headers(self):
+        """ Returns the HTTP headers present in the request
+
+         Notes:
+            Headers are cached permanently and should not be
+            modified
+        """
         headers = {}
         for k, v in self.env.items():
             if k.startswith("HTTP_"):
@@ -52,6 +69,7 @@ class Request(object):
 
     @property
     def server(self):
+        """Returns the server name, including port"""
         if 'HTTP_HOST' in self.env:
             return self.env['HTTP_HOST']
         else:
@@ -59,15 +77,27 @@ class Request(object):
 
     @property
     def port(self):
+        """Returns server port"""
         return self.env['SERVER_PORT']
 
     @property
     def location(self):
+        """Returns the scripts virtual location"""
         return self.env.get('SCRIPT_NAME', '')
 
     @property
     def method(self):
+        """Returns the request method"""
         return self.env['REQUEST_METHOD']
 
     def get_url(self, path):
+        """ Allows you to build an arbitrary URL
+
+         Notes:
+            The returned URL will be absolute, including
+            server location and scheme
+
+        Args:
+            path: The path to the required resource
+        """
         return "{0}://{1}{2}{3}".format(self.scheme, self.server, self.location, path)

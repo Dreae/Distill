@@ -9,7 +9,7 @@ from Distill.renderers import RenderFactory
 
 
 class Distill(object):
-    def __init__(self, base_node=None, before=None, after=None, settings={}):
+    def __init__(self, base_node=None, before=None, after=None, settings=None):
         """ INIT
 
         Args:
@@ -20,6 +20,8 @@ class Distill(object):
             document_root: Root directory for mako templates
         """
         self.base_node = base_node
+        if settings is None:
+            settings = {}
         self.settings = settings
         self._before = before
         self._after = after
@@ -91,6 +93,20 @@ class Distill(object):
         return resp
 
     def _traverse(self, req):
+        """ Traverses the application browse tree
+
+         Notes:
+            This method traverses the application tree.
+            Similar to traversal in Pyramid the application
+            calls __getitem__ on nodes in order, starting from
+            the root.  If a node is not found in the tree, a
+            HTTPNotFound is raised.  Once the application reaches
+            the end of the tree it calls on_get or on_post on the
+            last reached node as appropriate
+
+        Args:
+            req: The current request
+        """
         p = req.path.strip("/").split("/")
         context = self.base_node
         for node in p:
