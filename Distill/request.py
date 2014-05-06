@@ -11,7 +11,6 @@ class Request(object):
         self.errors = env['wsgi.errors']
         self.scheme = env['wsgi.url_scheme']
 
-
         path = env['PATH_INFO']
         if path:
             if len(path) != 1 and path.endswith("/"):
