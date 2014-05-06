@@ -108,19 +108,16 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(resp.status, '200 OK')
 
     def test_before_after(self):
-        def before(request, response):
+        def test_before(request, response):
             response.headers['X-Before'] = 'true'
 
-        def after(request, response):
+        def test_after(request, response):
             response.headers['X-After'] = 'true'
 
-        app = Distill(base_node=Website(),
-                      settings={
-                          'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))},
-                      before=before, after=after)
+        app = Distill(base_node=Website(), before=test_before, after=test_after)
         app.add_renderer('prettyjson', JSON(indent=4))
 
-        resp, body = self.simulate_request(app, 'GET', '', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '/Dreae/userinfo', None, u'')
         self.assertIn('X-Before', resp.headers)
         self.assertEqual(resp.headers['X-Before'], 'true')
         self.assertIn('X-After', resp.headers)

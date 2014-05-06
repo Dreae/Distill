@@ -21,8 +21,8 @@ class RenderFactory(object):
             self._template_lookup = TemplateLookup(output_encoding='ascii')
         else:  # pragma: no cover
             self._template_lookup = TemplateLookup(input_encoding='utf-8')
-        self._template_lookup.directories.append(settings.get('distill.document_root', None))
-        self._template_lookup.module_directory = settings.get('distill.document_root', None)
+        self._template_lookup.directories.append(settings.get('distill.document_root', ''))
+        self._template_lookup.module_directory = settings.get('distill.document_root', '')
         self._renderers = {}
 
     def __call__(self, template, data, request, response):
