@@ -1,7 +1,5 @@
 import inspect
-import os
 import sys
-from Distill import PY3
 from Distill.exceptions import HTTPNotFound, HTTPErrorResponse
 from Distill.request import Request
 from Distill.response import Response
@@ -38,6 +36,7 @@ class Distill(object):
         the root node to the required view node
         """
         req = Request(env, self.settings)
+        resp = None
         try:
             resp = self._request(env, req)
         except HTTPErrorResponse as ex:

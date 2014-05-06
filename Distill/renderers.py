@@ -29,8 +29,8 @@ class RenderFactory(object):
         """ Actually render the response
 
         Notes:
-            The current request and response will be available to
-            template as req and resp respectively
+            The current request will be available to template
+            template as req
 
         Args:
             template: The template you're looking up
@@ -40,6 +40,7 @@ class RenderFactory(object):
         """
         if '.mako' in template.lower():
             response.headers['Content-Type'] = 'text/html'
+            data['req'] = request
             return self._template_lookup.get_template(template).render(**data)
         elif template in self._renderers:
             return self._renderers[template](data, request, response)

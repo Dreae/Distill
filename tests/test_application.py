@@ -1,12 +1,16 @@
 import os
 import unittest
 import json
-from io import StringIO
 from Distill.decorators import exception_responder, before, after
 from Distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
 from Distill.application import Distill
 from Distill.renderers import renderer, JSON
 from Distill.response import Response
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class User(object):
@@ -83,28 +87,28 @@ class TestApplication(unittest.TestCase):
                       settings={
                           'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
         app.add_renderer('prettyjson', JSON(indent=4))
-        resp, body = self.simulate_request(app, 'GET', '', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertIn('X-After', resp.headers)
         with self.assertRaises(HTTPNotFound):
-            self.simulate_request(app, 'GET', '/foo/bar/baz', None, u'')
+            self.simulate_request(app, 'GET', '/foo/bar/baz', None, '')
 
-        resp, body = self.simulate_request(app, 'GET', '/badrequest', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '/badrequest', None, '')
         data = json.loads(body)
         self.assertEqual(data['msg'], 'Well that was bad')
         self.assertEqual(resp.status, '400 Bad Request')
 
-        resp, body = self.simulate_request(app, 'POST', '', 'foo=bar', u'user=Bar')
+        resp, body = self.simulate_request(app, 'POST', '', 'foo=bar', 'user=Bar')
         self.assertEqual(body, 'Loggedin Bar')
 
         with self.assertRaises(HTTPErrorResponse):
-            self.simulate_request(app, 'POST', '/Foo/userinfo', None, u'')
+            self.simulate_request(app, 'POST', '/Foo/userinfo', None, '')
 
-        resp, body = self.simulate_request(app, 'GET', '/Foo', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '/Foo', None, '')
         self.assertIn('X-Test', resp.headers)
         self.assertEqual(body, 'Hello world')
 
-        resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, '')
         self.assertEqual(resp.status, '200 OK')
 
     def test_before_after(self):
@@ -117,7 +121,7 @@ class TestApplication(unittest.TestCase):
         app = Distill(base_node=Website(), before=test_before, after=test_after)
         app.add_renderer('prettyjson', JSON(indent=4))
 
-        resp, body = self.simulate_request(app, 'GET', '/Dreae/userinfo', None, u'')
+        resp, body = self.simulate_request(app, 'GET', '/Dreae/userinfo', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertEqual(resp.headers['X-Before'], 'true')
         self.assertIn('X-After', resp.headers)

@@ -1,6 +1,7 @@
 import unittest
 from Distill.response import Response
-from io import StringIO
+from io import BytesIO
+
 
 class TestResponse(unittest.TestCase):
     def test_finalize(self):
@@ -11,14 +12,14 @@ class TestResponse(unittest.TestCase):
         self.assertEqual(resp.wsgi_headers, [('Content-Length', str(len(resp.body)))])
 
         resp = Response("404 Not Found")
-        resp.file = StringIO(u"Foobar")
+        resp.file = BytesIO(b"Foobar")
         resp.finalize(None)
-        self.assertEqual([block for block in resp.iterable], ['Foobar'])
+        self.assertEqual([block for block in resp.iterable], [b'Foobar'])
 
         resp = Response()
-        resp.file = StringIO(u"Foobar")
-        resp.finalize(lambda f, blocksize: iter(lambda: f.read(8 * 1024), ''))
-        self.assertEqual([block for block in resp.iterable], ['Foobar'])
+        resp.file = BytesIO(b"Foobar")
+        resp.finalize(lambda f, blocksize: iter(lambda: f.read(8 * 1024), b''))
+        self.assertEqual([block for block in resp.iterable], [b'Foobar'])
 
     def test_body(self):
         resp = Response()
@@ -26,7 +27,7 @@ class TestResponse(unittest.TestCase):
         self.assertTrue(not resp.iterable)
 
         resp = Response()
-        resp.file = StringIO(u"Foobar")
+        resp.file = BytesIO(b"Foobar")
         resp.file_len = len("Foobar")
         resp.finalize(None)
         self.assertEqual(resp.headers['Content-Length'], str(len('Foobar')))

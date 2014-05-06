@@ -2,14 +2,12 @@
 # &copy; 2011 Christopher Arndt, MIT License
 #
 import re
-
 import time
-import sys
 from Distill import PY2
 
 
 class cached_property(object):  # pragma: no cover
-    '''Decorator for read-only properties evaluated only once within TTL period.
+    """Decorator for read-only properties evaluated only once within TTL period.
 
     It can be used to created a cached property like this::
 
@@ -38,7 +36,7 @@ class cached_property(object):  # pragma: no cover
 
         del instance._cache[<property name>]
 
-    '''
+    """
     def __init__(self, ttl=300):
         self.ttl = ttl
         self.fget = None

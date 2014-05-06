@@ -1,11 +1,15 @@
-from io import StringIO
 import unittest
 from Distill.request import Request
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class TestRequest(unittest.TestCase):
     def test_base_request(self):
-        post_data = u'hello=world&foo=foo%20bar&baz=foo+bar'
+        post_data = 'hello=world&foo=foo%20bar&baz=foo+bar'
         fake_env = {'wsgi.input': StringIO(post_data), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
                     'CONTENT_LENGTH': len(post_data), 'PATH_INFO': '/foo/bar', 'SERVER_PORT': '8080',
                     'CONTENT_TYPE': 'application/x-www-form-urlencoded', 'HTTP_X_H_Test': 'Foobar',
