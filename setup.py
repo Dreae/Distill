@@ -1,8 +1,4 @@
-from setuptools import setup, Extension
-from tests import test_suite
-from os import path
-import sys
-
+from setuptools import setup
 
 setup(
     name='Distill',
@@ -14,5 +10,5 @@ setup(
     author_email='penitenttangentt@gmail.com',
     description='Just another python web framework',
     requires=['mako'],
-    test_suite='tests.test_suite'
+    test_suite='nose.collector'
 )

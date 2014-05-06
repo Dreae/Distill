@@ -1,4 +1,7 @@
-import unittest
+try:
+    import testtools as unittest
+except ImportError:
+    import unittest
 from Distill.response import Response
 from io import BytesIO
 
@@ -31,6 +34,7 @@ class TestResponse(unittest.TestCase):
         resp.file_len = len("Foobar")
         resp.finalize(None)
         self.assertEqual(resp.headers['Content-Length'], str(len('Foobar')))
+
 
 def suite():
     return unittest.TestSuite(map(TestResponse, ['test_finalize', 'test_body']))

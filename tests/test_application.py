@@ -1,5 +1,8 @@
 import os
-import unittest
+try:
+    import testtools as unittest
+except ImportError:
+    import unittest
 import json
 from Distill.decorators import exception_responder, before, after
 from Distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
@@ -90,8 +93,7 @@ class TestApplication(unittest.TestCase):
         resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertIn('X-After', resp.headers)
-        with self.assertRaises(HTTPNotFound):
-            self.simulate_request(app, 'GET', '/foo/bar/baz', None, '')
+        self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/foo/bar/baz', None, '')
 
         resp, body = self.simulate_request(app, 'GET', '/badrequest', None, '')
         data = json.loads(body)
@@ -101,8 +103,7 @@ class TestApplication(unittest.TestCase):
         resp, body = self.simulate_request(app, 'POST', '', 'foo=bar', 'user=Bar')
         self.assertEqual(body, 'Loggedin Bar')
 
-        with self.assertRaises(HTTPErrorResponse):
-            self.simulate_request(app, 'POST', '/Foo/userinfo', None, '')
+        self.assertRaises(HTTPErrorResponse, self.simulate_request, app, 'POST', '/Foo/userinfo', None, '')
 
         resp, body = self.simulate_request(app, 'GET', '/Foo', None, '')
         self.assertIn('X-Test', resp.headers)

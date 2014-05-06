@@ -23,9 +23,12 @@ class Distill(object):
         self.settings = settings
         self._before = before
         self._after = after
-        self._exc_listeners = {a[1].distill_handles_exception: a[1] for a in
-                               inspect.getmembers(self.base_node,
-                                                  lambda mem: hasattr(mem, "distill_handles_exception"))}
+        self._exc_listeners = dict(
+            [
+                (a[1].distill_handles_exception, a[1])
+                for a in inspect.getmembers(self.base_node,
+                                            lambda mem: hasattr(mem, "distill_handles_exception"))
+            ])
 
         RenderFactory.create(settings)
 

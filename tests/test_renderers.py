@@ -1,6 +1,9 @@
 import json
 import os
-import unittest
+try:
+    import testtools as unittest
+except ImportError:
+    import unittest
 from Distill.exceptions import HTTPInternalServerError
 from Distill.renderers import RenderFactory, renderer
 from Distill.response import Response
@@ -43,8 +46,7 @@ class TestRenderers(unittest.TestCase):
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
         data = json.loads(rendered)
         self.assertEqual(data['name'], 'Foobar')
-        with self.assertRaises(HTTPInternalServerError):
-            fake_on_get_non_json_obj(None, None, None)
+        self.assertRaises(HTTPInternalServerError, fake_on_get_non_json_obj, None, None, None)
 
     def test_file_templates(self):
         RenderFactory.create(
@@ -88,8 +90,7 @@ class TestRenderers(unittest.TestCase):
         def fake_on_get(this, request, response):
             return "How did I get here?"
 
-        with self.assertRaises(HTTPInternalServerError):
-            fake_on_get(None, None, None)
+        self.assertRaises(HTTPInternalServerError, fake_on_get, None, None, None)
 
 
 def suite():

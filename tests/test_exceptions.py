@@ -1,4 +1,7 @@
-import unittest
+try:
+    import testtools as unittest
+except ImportError:
+    import unittest
 from Distill.exceptions import *
 
 
