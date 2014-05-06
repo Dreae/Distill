@@ -31,6 +31,6 @@ class Response(object):
             if wsgi_file_wrapper:
                 self.iterable = wsgi_file_wrapper(self.file, 8 * 1024)
             else:
-                self.iterable = iter(lambda: self.file.read(8 * 1024), b'')
+                self.iterable = iter(lambda: self.file.read(8 * 1024), '')
         else:
             self.iterable = []

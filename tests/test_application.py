@@ -1,7 +1,8 @@
 import os
 import unittest
 import json
-from StringIO import StringIO
+from io import StringIO
+from Distill import PY3
 from Distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
 from Distill.application import Distill, exception_responder
 from Distill.renderers import renderer, JSON
@@ -60,7 +61,9 @@ class Website(object):
 
     @exception_responder(HTTPInternalServerError)
     def handle_ise(self, request, response):
-        return Response('200 OK')
+        resp = Response('200 OK')
+        resp.body = "Whoops"
+        return resp
 
 
 class TestApplication(unittest.TestCase):
@@ -69,27 +72,47 @@ class TestApplication(unittest.TestCase):
                       settings={
                           'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
         app.add_renderer('prettyjson', JSON(indent=4))
-        self.simulate_request(app, 'GET', '', None, '')
+        self.simulate_request(app, 'GET', '', None, u'')
         with self.assertRaises(HTTPNotFound):
-            self.simulate_request(app, 'GET', '/foo/bar/baz', None, '')
+            self.simulate_request(app, 'GET', '/foo/bar/baz', None, u'')
 
-        resp, body = self.simulate_request(app, 'GET', '/badrequest', None, '')
-        data = json.loads(body[0])
+        resp, body = self.simulate_request(app, 'GET', '/badrequest', None, u'')
+        data = json.loads(body)
         self.assertEqual(data['msg'], 'Well that was bad')
         self.assertEqual(resp.status, '400 Bad Request')
 
-        resp, body = self.simulate_request(app, 'POST', '', 'foo=bar', 'user=Bar')
-        self.assertEqual(body[0], 'Loggedin Bar')
+        resp, body = self.simulate_request(app, 'POST', '', 'foo=bar', u'user=Bar')
+        self.assertEqual(body, 'Loggedin Bar')
 
         with self.assertRaises(HTTPErrorResponse):
-            self.simulate_request(app, 'POST', '/Foo/userinfo', None, '')
+            self.simulate_request(app, 'POST', '/Foo/userinfo', None, u'')
 
-        resp, body = self.simulate_request(app, 'GET', '/Foo', None, '')
+        resp, body = self.simulate_request(app, 'GET', '/Foo', None, u'')
         self.assertIn('X-Test', resp.headers)
-        self.assertEqual(body[0], 'Hello world')
+        self.assertEqual(body, 'Hello world')
 
-        resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, '')
+        resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, u'')
         self.assertEqual(resp.status, '200 OK')
+
+    def test_before_after(self):
+        def before(request, response):
+            response.headers['X-Before'] = 'true'
+
+        def after(request, response):
+            response.headers['X-After'] = 'true'
+
+        app = Distill(base_node=Website(),
+                      settings={
+                          'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))},
+                      before=before, after=after)
+        app.add_renderer('prettyjson', JSON(indent=4))
+
+        resp, body = self.simulate_request(app, 'GET', '', None, u'')
+        self.assertIn('X-Before', resp.headers)
+        self.assertEqual(resp.headers['X-Before'], 'true')
+        self.assertIn('X-After', resp.headers)
+        self.assertEqual(resp.headers['X-After'], 'true')
+
 
     @staticmethod
     def simulate_request(app, method, path, querystring, body):
@@ -106,11 +129,12 @@ class TestApplication(unittest.TestCase):
             resp.status = status
             resp.headers = dict(headers)
             if exc_info:
-                raise exc_info[0], exc_info[1], exc_info[2]
+                raise exc_info[0](exc_info[1])  # No traceback because python3
 
         body = app(fake_env, start_response)
-        return resp, body
+        body = body[0]
+        return resp, body.decode('utf-8')
 
 
 def suite():
-    return unittest.TestSuite(map(TestApplication, ['test_application']))
+    return unittest.TestSuite(map(TestApplication, ['test_application', 'test_before_after']))

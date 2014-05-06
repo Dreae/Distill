@@ -9,7 +9,7 @@ class HTTPErrorResponse(Response, Exception):
         self.title = title
         self.description = description
         self.headers['Content-Type'] = 'application/json'
-        self.body = json.dumps({"title": self.title, "description": self.description})
+        self.body = json.dumps({"title": str(self.title), "description": str(self.description)})
 
 
 class HTTPMovedPermanently(HTTPErrorResponse):
