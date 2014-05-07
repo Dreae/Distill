@@ -148,7 +148,3 @@ class TestApplication(unittest.TestCase):
         body = app(fake_env, start_response)
         body = body[0]
         return resp, body.decode('utf-8')
-
-
-def suite():
-    return unittest.TestSuite(map(TestApplication, ['test_application', 'test_before_after']))

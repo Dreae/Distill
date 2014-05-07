@@ -6,10 +6,11 @@ from Distill.request import Request
 
 try:
     from StringIO import StringIO
+    from io import BytesIO
 except ImportError:
-    from io import StringIO
+    from io import StringIO, BytesIO
 
-form = """--AaB03x
+form = b"""--AaB03x
 Content-Disposition: form-data; name="submit-name"
 
 Larry
@@ -66,7 +67,7 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(req.get_url('/foo/bar'), 'https://foobar.baz:8080/some/script/dir/foo/bar')
 
     def test_multipart_form(self):
-        fake_env = {'wsgi.input': StringIO(form), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
+        fake_env = {'wsgi.input': BytesIO(form), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
                     'CONTENT_LENGTH': len(form), 'PATH_INFO': '/foo/bar', 'SERVER_PORT': '8080',
                     'CONTENT_TYPE': 'multipart/form-data; boundary=AaB03x',
                     'HTTP_CONTENT_TYPE': 'multipart/form-data; boundary=AaB03x',
@@ -75,4 +76,4 @@ class TestRequest(unittest.TestCase):
                     'REQUEST_METHOD': 'POST'}
         req = Request(fake_env)
         self.assertEqual(req.POST['files'].filename, 'file1.txt')
-        self.assertEqual(req.POST['files'].file.read(), 'Hello world')
+        self.assertEqual(req.POST['files'].file.read(), b'Hello world')
