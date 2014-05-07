@@ -60,11 +60,15 @@ class TestRequest(unittest.TestCase):
         del fake_env['QUERY_STRING']
         fake_env['PATH_INFO'] = None
         fake_env['wsgi.input'].seek(0)
+        fake_env['HTTP_COOKIE'] = 'foo=bar; bar=foo'
         req = Request(fake_env)
         self.assertNotIn('hello', req.POST)
         self.assertNotIn('hello', req.GET)
         self.assertEqual(req.server, 'foobar.baz:8080')
         self.assertEqual(req.get_url('/foo/bar'), 'https://foobar.baz:8080/some/script/dir/foo/bar')
+        self.assertIn('foo', req.cookies)
+        self.assertIn('bar', req.cookies)
+        self.assertEqual(req.cookies['foo'], 'bar')
 
     def test_multipart_form(self):
         fake_env = {'wsgi.input': BytesIO(form), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',

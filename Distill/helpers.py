@@ -67,6 +67,10 @@ class cached_property(object):  # pragma: no cover
 _QS_RE = re.compile(r'([A-z][A-z0-9_\-\.]*)=([^&]+)')
 _HEX = '0123456789abcdef'
 _HEX_TO_BYTE = dict((a + b, chr(int(a + b, 16))) for a in _HEX for b in _HEX)
+_BYTE_TO_HEX = dict((int(a + b, 16), a + b) for a in _HEX for b in _HEX)
+ALLOWED_CHRS = 'abcdefghijklmnopqrstuvwxyz'
+ALLOWED_CHRS += ALLOWED_CHRS.upper()
+ALLOWED_CHRS += '0123456789'
 
 
 def parse_query_string(query):
@@ -106,3 +110,60 @@ def url_decode(string):
         decoded_uri += _HEX_TO_BYTE[token[:2]] + token[2:]
 
     return decoded_uri
+
+
+class CaseInsensitiveDict(dict):
+    """ A case-insensitive dict object
+
+    Notes:
+        Used by Request object for headers, since WSGI
+        scraps header capitalization.  This allows developers
+        with OCD to access the header dict using any
+        capitilization they like
+    """
+
+    def __init__(self, data=None, **kwargs):
+        self._dict = dict()
+        if data is None:
+            data = {}
+        self._dict.update(data, **kwargs)
+
+    def __setitem__(self, key, value):
+        self._dict[key.lower()] = (key, value)
+
+    def __getitem__(self, item):
+        return self._dict[item.lower()][1]
+
+    def __delitem__(self, key):
+        del self._dict[key.lower()]
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __iter__(self):
+        return (k for k, v in self._dict.values())
+
+    def keys(self):
+        return [k for k, v in self._dict.values()]
+
+    def get(self, k, d=None):
+        try:
+            return self._dict[k.lower()][1]
+        except KeyError:
+            return d
+
+    def setdefault(self, k, d=None):
+        if not k.lower() in self._dict:
+            self._dict[k.lower()] = (k, d)
+
+    def iteritems(self):
+        return self._dict.values()
+
+    def items(self):
+        return self._dict.values()
+
+    def copy(self):
+        return CaseInsensitiveDict(self._dict)
+
+    def __contains__(self, item):
+        return item.lower() in self._dict

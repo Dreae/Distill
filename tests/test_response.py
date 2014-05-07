@@ -2,6 +2,8 @@ try:
     import testtools as unittest
 except ImportError:
     import unittest
+
+from functools import reduce
 from Distill.response import Response
 from io import BytesIO
 
@@ -34,3 +36,10 @@ class TestResponse(unittest.TestCase):
         resp.file_len = len("Foobar")
         resp.finalize(None)
         self.assertEqual(resp.headers['Content-Length'], str(len('Foobar')))
+
+    def test_set_cookie(self):
+        resp = Response()
+        resp.set_cookie("foo", "bar")
+        resp.set_cookie("bar", "baz", domain='foo.com', secure=True, comment='Hello world')
+        resp.set_cookie("foobar", "boofar", domain='.foo.com')
+        self.assertEqual(reduce(lambda t, l: t + 1 if l[0] == 'Set-Cookie' else t, resp.wsgi_headers, 0), 3)

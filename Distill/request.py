@@ -1,9 +1,11 @@
 import cgi
 import re
-from Distill.helpers import cached_property, parse_query_string
+from Distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
 
 
 class Request(object):
+    _cookiere = re.compile(r'([^=]+)=([^;]+)(?:;\s*)*')
+
     def __init__(self, env, settings=None):
         """ Init
          Notes:
@@ -65,14 +67,19 @@ class Request(object):
 
          Notes:
             Headers are cached permanently and should not be
-            modified
+            modified.
         """
-        headers = {}
+        headers = CaseInsensitiveDict()
         for k, v in self.env.items():
             if k.startswith("HTTP_"):
                 headers[k[5:].replace('_', '-')] = v
 
         return headers
+
+    @cached_property(ttl=0)
+    def cookies(self):
+        # noinspection PyTypeChecker
+        return dict(self._cookiere.findall(self.headers.get('Cookie', '')))
 
     @property
     def server(self):

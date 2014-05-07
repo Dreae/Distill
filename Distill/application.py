@@ -55,6 +55,8 @@ class Distill(object):
                 return resp.iterable
             else:
                 start_response(ex.status, ex.wsgi_headers, sys.exc_info())
+                # By spec execution shouldn't get here, but incase it does
+                return []  # pragma: no cover
 
         start_response(resp.status, resp.wsgi_headers)
         return resp.iterable
