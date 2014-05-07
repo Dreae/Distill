@@ -3,7 +3,7 @@ from Distill import PY3
 
 class Response(object):
     def __init__(self, status="200 OK", headers=None):
-        """Initializes an empty resposne"""
+        """Initializes an empty response"""
         self.status = status
         if headers is None:
             headers = {}
@@ -35,17 +35,16 @@ class Response(object):
             wsgi_file_wrapper: Wrapping function provided by WSGI server
 
         """
+
         if self.body:
             self.headers['Content-Length'] = str(len(self.body))
-        elif self.file:
-            if self.file_len:
-                self.headers['Content-Length'] = str(self.file_len)
-        if self.body:
             if PY3:  # pragma: no cover
                 self.iterable = [bytes(self.body, 'utf-8')]
             else:  # pragma: no cover
                 self.iterable = [self.body]
         elif self.file:
+            if self.file_len:
+                self.headers['Content-Length'] = str(self.file_len)
             if wsgi_file_wrapper:
                 self.iterable = wsgi_file_wrapper(self.file, 8 * 1024)
             else:

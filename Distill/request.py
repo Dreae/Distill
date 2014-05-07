@@ -1,3 +1,5 @@
+import cgi
+import re
 from Distill.helpers import cached_property, parse_query_string
 
 
@@ -49,6 +51,11 @@ class Request(object):
         if self.content_type and "application/x-www-form-urlencoded" in self.content_type:
             data = self.stream.read(self.content_length)
             self.POST = parse_query_string(data)
+        elif self.content_type and 'multipart/form-data' in self.content_type:
+            fs_env = self.env.copy()
+            fs_env.setdefault('CONTENT_LENGTH', '0')
+            fs_env['QUERY_STRING'] = ''
+            self.POST = cgi.FieldStorage(fp=self.stream, environ=fs_env, keep_blank_values=True)
         else:
             self.POST = {}
 

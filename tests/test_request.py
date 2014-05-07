@@ -9,6 +9,17 @@ try:
 except ImportError:
     from io import StringIO
 
+form = """--AaB03x
+Content-Disposition: form-data; name="submit-name"
+
+Larry
+--AaB03x
+Content-Disposition: form-data; name="files"; filename="file1.txt"
+Content-Type: text/plain
+
+Hello world
+--AaB03x--"""
+
 
 class TestRequest(unittest.TestCase):
     def test_base_request(self):
@@ -54,6 +65,14 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(req.server, 'foobar.baz:8080')
         self.assertEqual(req.get_url('/foo/bar'), 'https://foobar.baz:8080/some/script/dir/foo/bar')
 
-
-def suite():
-    return unittest.TestSuite(map(TestRequest, ['test_base_request']))
+    def test_multipart_form(self):
+        fake_env = {'wsgi.input': StringIO(form), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
+                    'CONTENT_LENGTH': len(form), 'PATH_INFO': '/foo/bar', 'SERVER_PORT': '8080',
+                    'CONTENT_TYPE': 'multipart/form-data; boundary=AaB03x',
+                    'HTTP_CONTENT_TYPE': 'multipart/form-data; boundary=AaB03x',
+                    'HTTP_X_H_Test': 'Foobar', 'QUERY_STRING': '', 'HTTP_HOST': 'foobar.baz:8080',
+                    'SERVER_NAME': 'foobar.baz', 'HTTP_FOO': 'bar', 'SCRIPT_NAME': '/some/script/dir',
+                    'REQUEST_METHOD': 'POST'}
+        req = Request(fake_env)
+        self.assertEqual(req.POST['files'].filename, 'file1.txt')
+        self.assertEqual(req.POST['files'].file.read(), 'Hello world')

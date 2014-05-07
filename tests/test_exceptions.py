@@ -16,7 +16,3 @@ class TestExceptions(unittest.TestCase):
         movedpermanently = HTTPMovedPermanently()
         badrequest = HTTPBadRequest()
         base = HTTPErrorResponse("716 I am not a teapot", "This unit is not a teapot")
-
-
-def suite():
-    return unittest.TestSuite(map(TestExceptions, ['test_init_all']))

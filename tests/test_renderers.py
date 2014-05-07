@@ -91,8 +91,3 @@ class TestRenderers(unittest.TestCase):
             return "How did I get here?"
 
         self.assertRaises(HTTPInternalServerError, fake_on_get, None, None, None)
-
-
-def suite():
-    return unittest.TestSuite(
-        map(TestRenderers, ['test_default_renderers', 'test_file_templates', 'test_add_renderer', 'test_no_template']))

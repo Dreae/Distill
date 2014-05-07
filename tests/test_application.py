@@ -128,7 +128,6 @@ class TestApplication(unittest.TestCase):
         self.assertIn('X-After', resp.headers)
         self.assertEqual(resp.headers['X-After'], 'true')
 
-
     @staticmethod
     def simulate_request(app, method, path, querystring, body):
         fake_env = {'wsgi.input': StringIO(body), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
