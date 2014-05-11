@@ -20,6 +20,15 @@ class Distill(object):
         self.base_node = base_node
         if settings is None:
             settings = {}
+
+        if 'distill.sessions.factory' in settings:
+            components = settings['distill.sessions.factory'].split('.')
+            mod = __import__('.'.join(components[:-1]), globals(), locals(), components[-1:])
+            print("Got sessfactory: " + repr(getattr(mod, components[len(components) - 1])))
+            self._session_factory = getattr(mod, components[len(components) - 1])(settings)
+        else:
+            self._session_factory = None
+
         self.settings = settings
         self._before = before
         self._after = after
@@ -39,7 +48,12 @@ class Distill(object):
         the root node to the required view node
         """
         req = Request(env, self.settings)
+
+        if self._session_factory:
+            self._session_factory.load(req)
+
         resp = None
+
         try:
             resp = self._request(env, req)
         except HTTPErrorResponse as ex:
@@ -50,13 +64,21 @@ class Distill(object):
                     resp = res
                 else:
                     resp.body = str(res)
+
+                if self._session_factory:
+                    self._session_factory.save(req, resp)
                 resp.finalize(env.get('wsgi.file_wrapper'))
                 start_response(resp.status, resp.wsgi_headers)
                 return resp.iterable
             else:
+                if self._session_factory:
+                    self._session_factory.save(req, ex)
                 start_response(ex.status, ex.wsgi_headers, sys.exc_info())
                 # By spec execution shouldn't get here, but incase it does
                 return []  # pragma: no cover
+
+        if self._session_factory:
+            self._session_factory.save(req, resp)
 
         start_response(resp.status, resp.wsgi_headers)
         return resp.iterable

@@ -37,8 +37,7 @@ class cached_property(object):  # pragma: no cover
         del instance._cache[<property name>]
 
     """
-    def __init__(self, ttl=300):
-        self.ttl = ttl
+    def __init__(self):
         self.fget = None
         self.__name__ = None
 
@@ -52,16 +51,14 @@ class cached_property(object):  # pragma: no cover
     def __get__(self, inst, owner):
         now = time.time()
         try:
-            value, last_update = inst._cache[self.__name__]
-            if 0 < self.ttl < now - last_update:
-                raise AttributeError
+            value = inst._cache[self.__name__]
         except (KeyError, AttributeError):
             value = self.fget(inst)
             try:
                 cache = inst._cache
             except AttributeError:
                 cache = inst._cache = {}
-            cache[self.__name__] = (value, now)
+            cache[self.__name__] = value
         return value
 
 _QS_RE = re.compile(r'([A-z][A-z0-9_\-\.]*)=([^&]+)')

@@ -1,6 +1,7 @@
 import cgi
 import re
 from Distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
+from Distill.sessions import Session
 
 
 class Request(object):
@@ -21,6 +22,7 @@ class Request(object):
             settings = {}
         self.settings = settings
         self.env = env
+        self.session = Session()
 
         self.stream = env['wsgi.input']
         self.errors = env['wsgi.errors']
@@ -61,7 +63,7 @@ class Request(object):
         else:
             self.POST = {}
 
-    @cached_property(ttl=0)
+    @cached_property()
     def headers(self):
         """ Returns the HTTP headers present in the request
 
@@ -76,7 +78,7 @@ class Request(object):
 
         return headers
 
-    @cached_property(ttl=0)
+    @cached_property()
     def cookies(self):
         # noinspection PyTypeChecker
         return dict(self._cookiere.findall(self.headers.get('Cookie', '')))

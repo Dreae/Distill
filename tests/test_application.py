@@ -1,4 +1,6 @@
 import os
+from Distill.sessions import BaseSessionFactory
+
 try:
     import testtools as unittest
 except ImportError:
@@ -14,6 +16,17 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
+
+
+class BlankSessionFactory(BaseSessionFactory):
+    def save(self, request, response):
+        pass
+
+    def load(self, request):
+        pass
+
+    def __init__(self, settings):
+        pass
 
 
 class User(object):
@@ -88,7 +101,10 @@ class TestApplication(unittest.TestCase):
     def test_application(self):
         app = Distill(base_node=Website(),
                       settings={
-                          'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
+                          'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
+                          'distill.sessions.factory': 'Distill.sessions.UnencryptedLocalSessionStorage',
+                          'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
+                      })
         app.add_renderer('prettyjson', JSON(indent=4))
         resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
@@ -127,6 +143,10 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(resp.headers['X-Before'], 'true')
         self.assertIn('X-After', resp.headers)
         self.assertEqual(resp.headers['X-After'], 'true')
+
+        self.assertRaises(HTTPErrorResponse, self.simulate_request, app, 'POST', '/Foo/userinfo', None, '')
+        resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, '')
+        self.assertEqual(resp.status, '200 OK')
 
     @staticmethod
     def simulate_request(app, method, path, querystring, body):

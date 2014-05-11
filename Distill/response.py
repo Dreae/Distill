@@ -60,7 +60,7 @@ class Response(object):
         if comment:
             cookie.append(("Comment", comment))
 
-        cookie = '; '.join([attr for attr in ["%s=%s" % (key, value) if value else key for (key, value)in cookie]])
+        cookie = '; '.join([attr for attr in ["%s=%s" % (key, value) if value else key for (key, value) in cookie]])
         self.headers.setdefault('Set-Cookie', [])
         self.headers['Set-Cookie'].append(cookie)
 
