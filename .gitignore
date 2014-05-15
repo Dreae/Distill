@@ -3,4 +3,10 @@ distill.profile
 foo.mako
 run.py
 locustfile.py
+.coverage
+
+*.pyc
+
+*.egg-info/
 .idea/
+htmlcov/
