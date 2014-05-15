@@ -1,4 +1,4 @@
-from Distill.helpers import CaseInsensitiveDict
+from distill.helpers import CaseInsensitiveDict
 
 try:
     import testtools as unittest

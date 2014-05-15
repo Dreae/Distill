@@ -1,8 +1,8 @@
 import base64
 import os
-try:
+try:  # pragma: no cover
     import cPickle as pickle
-except ImportError:
+except ImportError:  # pragma: no cover
     import pickle
 
 

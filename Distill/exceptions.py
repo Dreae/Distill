@@ -1,5 +1,5 @@
 import json
-from Distill.response import Response
+from distill.response import Response
 
 
 class HTTPErrorResponse(Response, Exception):

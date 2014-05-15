@@ -1,16 +1,16 @@
 import os
-from Distill.sessions import BaseSessionFactory
+from distill.sessions import BaseSessionFactory
 
 try:
     import testtools as unittest
 except ImportError:
     import unittest
 import json
-from Distill.decorators import exception_responder, before, after
-from Distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
-from Distill.application import Distill
-from Distill.renderers import renderer, JSON
-from Distill.response import Response
+from distill.decorators import exception_responder, before, after
+from distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
+from distill.application import Distill
+from distill.renderers import renderer, JSON
+from distill.response import Response
 
 try:
     from StringIO import StringIO
@@ -102,7 +102,7 @@ class TestApplication(unittest.TestCase):
         app = Distill(base_node=Website(),
                       settings={
                           'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
-                          'distill.sessions.factory': 'Distill.sessions.UnencryptedLocalSessionStorage',
+                          'distill.sessions.factory': 'distill.sessions.UnencryptedLocalSessionStorage',
                           'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
                       })
         app.add_renderer('prettyjson', JSON(indent=4))

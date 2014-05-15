@@ -4,9 +4,9 @@ try:
     import testtools as unittest
 except ImportError:
     import unittest
-from Distill.exceptions import HTTPInternalServerError
-from Distill.renderers import RenderFactory, renderer
-from Distill.response import Response
+from distill.exceptions import HTTPInternalServerError
+from distill.renderers import RenderFactory, renderer
+from distill.response import Response
 
 
 class TestRenderers(unittest.TestCase):

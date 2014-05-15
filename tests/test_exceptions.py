@@ -2,7 +2,7 @@ try:
     import testtools as unittest
 except ImportError:
     import unittest
-from Distill.exceptions import *
+from distill.exceptions import *
 
 
 class TestExceptions(unittest.TestCase):

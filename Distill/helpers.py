@@ -3,7 +3,7 @@
 #
 import re
 import time
-from Distill import PY2
+from distill import PY2
 
 
 class cached_property(object):  # pragma: no cover

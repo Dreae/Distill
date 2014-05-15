@@ -2,7 +2,7 @@ try:
     import testtools as unittest
 except ImportError:
     import unittest
-from Distill.request import Request
+from distill.request import Request
 
 try:
     from StringIO import StringIO

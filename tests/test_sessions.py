@@ -1,8 +1,8 @@
 import os
 import shutil
-from Distill.request import Request
-from Distill.response import Response
-from Distill.sessions import Session, UnencryptedLocalSessionStorage
+from distill.request import Request
+from distill.response import Response
+from distill.sessions import Session, UnencryptedLocalSessionStorage
 
 try:
     import testtools as unittest

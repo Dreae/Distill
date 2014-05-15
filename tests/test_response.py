@@ -4,7 +4,7 @@ except ImportError:
     import unittest
 
 from functools import reduce
-from Distill.response import Response
+from distill.response import Response
 from io import BytesIO
 
 

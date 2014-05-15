@@ -1,7 +1,7 @@
 import cgi
 import re
-from Distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
-from Distill.sessions import Session
+from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
+from distill.sessions import Session
 
 
 class Request(object):

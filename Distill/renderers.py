@@ -1,8 +1,8 @@
 from functools import wraps
 from mako.lookup import TemplateLookup
-from Distill import PY2
+from distill import PY2
 import json
-from Distill.exceptions import HTTPInternalServerError
+from distill.exceptions import HTTPInternalServerError
 
 
 class RenderFactory(object):

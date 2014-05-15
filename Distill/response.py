@@ -1,4 +1,4 @@
-from Distill import PY3
+from distill import PY3
 
 
 class Response(object):

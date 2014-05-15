@@ -1,9 +1,9 @@
 import inspect
 import sys
-from Distill.exceptions import HTTPNotFound, HTTPErrorResponse
-from Distill.request import Request
-from Distill.response import Response
-from Distill.renderers import RenderFactory
+from distill.exceptions import HTTPNotFound, HTTPErrorResponse
+from distill.request import Request
+from distill.response import Response
+from distill.renderers import RenderFactory
 
 
 class Distill(object):
