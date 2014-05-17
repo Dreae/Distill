@@ -60,6 +60,8 @@ class Request(object):
             fs_env.setdefault('CONTENT_LENGTH', '0')
             fs_env['QUERY_STRING'] = ''
             self.POST = cgi.FieldStorage(fp=self.stream, environ=fs_env, keep_blank_values=True)
+            self.POST = dict([(field.name, field.value) if field.filename is None
+                              else (field.name, field) for field in self.POST.list])
         else:
             self.POST = {}
 

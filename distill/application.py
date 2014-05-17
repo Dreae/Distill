@@ -52,8 +52,6 @@ class Distill(object):
         if self._session_factory:
             self._session_factory.load(req)
 
-        resp = None
-
         try:
             resp = self._request(env, req)
         except HTTPErrorResponse as ex:
@@ -86,7 +84,7 @@ class Distill(object):
     def _request(self, env, req):
         """ Processes the request
          Notes:
-            This method acts as a wrapper to easy exception handling
+            This method acts as a wrapper to ease exception handling
 
         Args:
             env: The wsgi environ variable
@@ -109,11 +107,11 @@ class Distill(object):
                 resp = res
             else:
                 resp.body = str(res)
+
+            if self._after:
+                self._after(req, resp)
         else:
             raise HTTPNotFound()
-
-        if self._after:
-            self._after(req, resp)
 
         resp.finalize(env.get('wsgi.file_wrapper'))
         return resp

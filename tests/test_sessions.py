@@ -9,6 +9,7 @@ try:
 except ImportError:
     import unittest
 
+
 class TestSessions(unittest.TestCase):
     def test_session_dict(self):
         sess = Session()
@@ -100,6 +101,5 @@ class TestSessions(unittest.TestCase):
 
         req = Request(fake_env)
         req.cookies['ssid'] = files[0]
-        resp = Response()
         factory.load(req)
         self.assertNotIn('ssid', req.cookies)
