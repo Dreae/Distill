@@ -67,6 +67,10 @@ class TestSessions(unittest.TestCase):
         factory = UnencryptedLocalSessionStorage({'distill.sessions.directory': store})
         self.assertTrue(os.path.exists(store))
 
+        class FakeApp(object):
+            settings = {}
+            map = None
+
         fake_env = {'wsgi.input': None, 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
                     'CONTENT_LENGTH': '0', 'PATH_INFO': '/foo/bar', 'SERVER_PORT': '8080',
                     'CONTENT_TYPE': '', 'HTTP_X_H_Test': 'Foobar',
@@ -74,7 +78,7 @@ class TestSessions(unittest.TestCase):
                     'HTTP_HOST': 'foobar.baz:8080', 'SERVER_NAME': 'foobar.baz', 'HTTP_FOO': 'bar',
                     'SCRIPT_NAME': '/some/script/dir', 'REQUEST_METHOD': 'GET'}
 
-        req = Request(fake_env)
+        req = Request(fake_env, FakeApp)
         resp = Response()
         factory.load(req)
         self.assertEqual(len(req.session), 0)
@@ -87,7 +91,7 @@ class TestSessions(unittest.TestCase):
             files += filenames
             break
 
-        req = Request(fake_env)
+        req = Request(fake_env, FakeApp)
         req.cookies['ssid'] = files[0]
         resp = Response()
         factory.load(req)
@@ -99,7 +103,7 @@ class TestSessions(unittest.TestCase):
         factory.save(req, resp)
         self.assertFalse(os.path.isfile(os.path.join(store, files[0])))
 
-        req = Request(fake_env)
+        req = Request(fake_env, FakeApp)
         req.cookies['ssid'] = files[0]
         factory.load(req)
         self.assertNotIn('ssid', req.cookies)

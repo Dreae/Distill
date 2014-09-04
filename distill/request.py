@@ -1,5 +1,6 @@
 import cgi
 import re
+from routes import URLGenerator
 from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
 from distill.sessions import Session
 
@@ -7,7 +8,7 @@ from distill.sessions import Session
 class Request(object):
     _cookiere = re.compile(r'([^=]+)=([^;]+)(?:;\s*)*')
 
-    def __init__(self, env, settings=None):
+    def __init__(self, env, app=None):
         """ Init
          Notes:
             Parses all relavent environ variables and stores
@@ -18,10 +19,9 @@ class Request(object):
             settings: The application's settings dict
         """
 
-        if settings is None:
-            settings = {}
-        self.settings = settings
+        self.settings = app.settings
         self.env = env
+        self.url = URLGenerator(app.map, env)
         self.session = Session()
 
         self.stream = env['wsgi.input']
@@ -107,15 +107,3 @@ class Request(object):
     def method(self):
         """Returns the request method"""
         return self.env['REQUEST_METHOD']
-
-    def get_url(self, path):
-        """ Allows you to build an arbitrary URL
-
-         Notes:
-            The returned URL will be absolute, including
-            server location and scheme
-
-        Args:
-            path: The path to the required resource
-        """
-        return "{0}://{1}{2}{3}".format(self.scheme, self.server, self.location, path)

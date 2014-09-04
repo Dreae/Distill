@@ -14,11 +14,11 @@ class TestRenderers(unittest.TestCase):
         RenderFactory.create({})
 
         @renderer('json')
-        def fake_on_get_json(this, request, response):
+        def fake_on_get_json(request, response):
             return {"Hello": "world"}
 
         resp = Response()
-        rendered = fake_on_get_json(None, None, resp)
+        rendered = fake_on_get_json(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
         data = json.loads(rendered)
         self.assertEqual(data['Hello'], 'world')
@@ -34,30 +34,30 @@ class TestRenderers(unittest.TestCase):
             pass
 
         @renderer('json')
-        def fake_on_get_json_obj(this, request, response):
+        def fake_on_get_json_obj(request, response):
             return json_obj('Foobar')
 
         @renderer('json')
-        def fake_on_get_non_json_obj(this, request, response):
+        def fake_on_get_non_json_obj(request, response):
             return not_json_obj()
 
         resp = Response()
-        rendered = fake_on_get_json_obj(None, None, resp)
+        rendered = fake_on_get_json_obj(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
         data = json.loads(rendered)
         self.assertEqual(data['name'], 'Foobar')
-        self.assertRaises(HTTPInternalServerError, fake_on_get_non_json_obj, None, None, None)
+        self.assertRaises(HTTPInternalServerError, fake_on_get_non_json_obj, None, None)
 
     def test_file_templates(self):
         RenderFactory.create(
             {'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res'))})
 
         @renderer('test.mako')
-        def fake_on_get_json(this, request, response):
+        def fake_on_get_json(request, response):
             return {"user": "Foobar"}
 
         resp = Response()
-        rendered = fake_on_get_json(None, None, resp)
+        rendered = fake_on_get_json(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'text/html')
         self.assertEqual(rendered, 'Hello Foobar!')
 
@@ -75,11 +75,11 @@ class TestRenderers(unittest.TestCase):
         RenderFactory.add_renderer('text2', TextRenderer())
 
         @renderer('text2')
-        def fake_on_get(this, request, response):
+        def fake_on_get(request, response):
             return "Hello world"
 
         resp = Response()
-        rendered = fake_on_get(None, None, resp)
+        rendered = fake_on_get(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'text/plain')
         self.assertEqual(rendered, 'Hello world')
 
@@ -87,7 +87,7 @@ class TestRenderers(unittest.TestCase):
         RenderFactory.create({})
 
         @renderer('foobar')
-        def fake_on_get(this, request, response):
+        def fake_on_get(request, response):
             return "How did I get here?"
 
-        self.assertRaises(HTTPInternalServerError, fake_on_get, None, None, None)
+        self.assertRaises(HTTPInternalServerError, fake_on_get, None, None)

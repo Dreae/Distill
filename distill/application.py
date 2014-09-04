@@ -1,5 +1,6 @@
 import inspect
 import sys
+from routes import Mapper
 from distill.exceptions import HTTPNotFound, HTTPErrorResponse
 from distill.request import Request
 from distill.response import Response
@@ -7,7 +8,7 @@ from distill.renderers import RenderFactory
 
 
 class Distill(object):
-    def __init__(self, base_node=None, before=None, after=None, settings=None):
+    def __init__(self, rmap=None, before=None, after=None, settings=None):
         """ INIT
 
         Args:
@@ -17,14 +18,17 @@ class Distill(object):
             settings: Settings dictionary, will be available in all requests
             document_root: Root directory for mako templates
         """
-        self.base_node = base_node
+        if rmap is None:
+            self.map = Mapper()
+        else:
+            self.map = rmap
+
         if settings is None:
             settings = {}
 
         if 'distill.sessions.factory' in settings:
             components = settings['distill.sessions.factory'].split('.')
             mod = __import__('.'.join(components[:-1]), globals(), locals(), components[-1:])
-            print("Got sessfactory: " + repr(getattr(mod, components[len(components) - 1])))
             self._session_factory = getattr(mod, components[len(components) - 1])(settings)
         else:
             self._session_factory = None
@@ -32,12 +36,7 @@ class Distill(object):
         self.settings = settings
         self._before = before
         self._after = after
-        self._exc_listeners = dict(
-            [
-                (a[1].distill_handles_exception, a[1])
-                for a in inspect.getmembers(self.base_node,
-                                            lambda mem: hasattr(mem, "distill_handles_exception"))
-            ])
+        self._exc_listeners = {}
 
         RenderFactory.create(settings)
 
@@ -47,7 +46,7 @@ class Distill(object):
         Creates new request using the provided env, then traverses
         the root node to the required view node
         """
-        req = Request(env, self.settings)
+        req = Request(env, self)
 
         if self._session_factory:
             self._session_factory.load(req)
@@ -94,13 +93,11 @@ class Distill(object):
         if self._before:
             self._before(req, resp)
 
-        context = self._traverse(req)
+        context = self.map.match(req.path, env)
 
-        if context:
-            if req.method == 'GET':
-                res = context.on_get(req, resp)
-            else:
-                res = context.on_post(req, resp)
+        if context is not None:
+            req.matchdict = context
+            res = context['action'](req, resp)
             if isinstance(res, Response):
                 if isinstance(res, HTTPErrorResponse):
                     raise res
@@ -116,32 +113,11 @@ class Distill(object):
         resp.finalize(env.get('wsgi.file_wrapper'))
         return resp
 
-    def _traverse(self, req):
-        """ Traverses the application browse tree
+    def map_connect(self, *args, **kwargs):
+        self.map.connect(*args, **kwargs)
 
-         Notes:
-            This method traverses the application tree.
-            Similar to traversal in Pyramid the application
-            calls __getitem__ on nodes in order, starting from
-            the root.  If a node is not found in the tree, a
-            HTTPNotFound is raised.  Once the application reaches
-            the end of the tree it calls on_get or on_post on the
-            last reached node as appropriate
-
-        Args:
-            req: The current request
-        """
-        p = req.path.strip("/").split("/")
-        context = self.base_node
-        for node in p:
-            if not node:
-                break
-            try:
-                context = context[node]
-                p = p[1:]
-            except (KeyError, TypeError):
-                return None
-        return context
+    def on_except(self, exc, method):
+        self._exc_listeners[exc] = method
 
     @staticmethod
     def add_renderer(name, serializer):

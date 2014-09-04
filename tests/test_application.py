@@ -1,16 +1,16 @@
 import os
-from distill.sessions import BaseSessionFactory
-
 try:
     import testtools as unittest
 except ImportError:
     import unittest
 import json
-from distill.decorators import exception_responder, before, after
+from distill.decorators import before, after
 from distill.exceptions import HTTPNotFound, HTTPBadRequest, HTTPErrorResponse, HTTPInternalServerError
 from distill.application import Distill
 from distill.renderers import renderer, JSON
 from distill.response import Response
+
+from routes import Mapper
 
 try:
     from StringIO import StringIO
@@ -18,94 +18,87 @@ except ImportError:
     from io import StringIO
 
 
-class BlankSessionFactory(BaseSessionFactory):
-    def save(self, request, response):
-        pass
-
-    def load(self, request):
-        pass
-
-    def __init__(self, settings):
-        pass
+def do_before(request, response):
+    response.headers['X-Before'] = 'true'
 
 
-class User(object):
-    def __init__(self, username):
-        self.username = username
-
-    def __getitem__(self, item):
-        if item == 'userinfo':
-            return UserInfo(self)
-
-    def on_get(self, request, response):
-        resp = Response("200 OK", {'X-Test': 'Foobar'})
-        resp.body = 'Hello world'
-        return resp
+def do_after(request, response):
+    response.headers['X-After'] = 'true'
 
 
-class UserInfo(object):
-    def __init__(self, user):
-        self.user = user
+@before(do_before)
+@after(do_after)
+@renderer('login.mako')
+def POST_home(request, response):
+    return {'user': request.POST['user']}
 
-    def json(self, request):
-        return {"username": self.user.username}
 
-    @renderer('prettyjson')
-    def on_get(self, request, response):
-        return self
+@before(do_before)
+@after(do_after)
+@renderer('site.mako')
+def GET_home(request, response):
+    return {}
 
-    def on_post(self, request, response):
+
+@renderer('prettyjson')
+def bad_request(request, response):
+    return {'msg': "Well that was bad"}
+
+
+def userinfo(request, reponse):
+    if request.method == 'POST':
         return HTTPErrorResponse("716 I am a teapot")
 
+    class User(object):
+        def __init__(self, user):
+            self.user = user
 
-class Website(object):
-    def __getitem__(self, item):
-        if item == 'badrequest':
-            raise HTTPBadRequest()
-        elif item == 'internalservererror':
-            raise HTTPInternalServerError()
-        return User(item)
+        def json(self, request):
+            return {'username': self.user}
 
-    def do_before(self, request, response):
-        response.headers['X-Before'] = 'true'
+    return User(request.matchdict['user'])
 
-    def do_after(self, request, response):
-        response.headers['X-After'] = 'true'
 
-    @before(do_before)
-    @after(do_after)
-    @renderer('site.mako')
-    def on_get(self, request, response):
-        return {}
+def user(request, response):
+    resp = Response(headers={'X-Test': 'Foobar'})
+    resp.body = "Hello world"
+    return resp
 
-    def do_after(self, request, response):
-        response.headers['X-After'] = 'true'
 
-    @renderer('login.mako')
-    def on_post(self, request, response):
-        return {'user': request.POST['user']}
+def internal_server_error(request, response):
+    raise HTTPInternalServerError()
 
-    @renderer('prettyjson')
-    @exception_responder(HTTPBadRequest)
-    def handle_bad_request(self, request, response):
-        return {"msg": "Well that was bad"}
 
-    @exception_responder(HTTPInternalServerError)
-    def handle_ise(self, request, response):
-        resp = Response('200 OK')
-        resp.body = "Whoops"
-        return resp
+def handle_ise(request, response):
+    resp = Response()
+    resp.body = "Whoops"
+    return resp
+
+
+def create_bad_request(request, response):
+    return HTTPBadRequest()
+
+
+exc_info = None
 
 
 class TestApplication(unittest.TestCase):
     def test_application(self):
-        app = Distill(base_node=Website(),
-                      settings={
-                          'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
-                          'distill.sessions.factory': 'distill.sessions.UnencryptedLocalSessionStorage',
-                          'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
-                      })
+        app = Distill(settings={
+            'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
+            'distill.sessions.factory': 'distill.sessions.UnencryptedLocalSessionStorage',
+            'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
+        })
         app.add_renderer('prettyjson', JSON(indent=4))
+        app.on_except(HTTPBadRequest, bad_request)
+        app.on_except(HTTPInternalServerError, handle_ise)
+        app.map_connect('home', '/', action=GET_home, conditions={"method": ["GET"]})
+        app.map_connect('home', '/', action=POST_home, conditions={"method": ["POST"]})
+        app.map_connect('badrequest', '/badrequest', action=create_bad_request)
+        app.map_connect('userinfo', '/:user/userinfo', action=userinfo)
+        app.map_connect('user', '/:user', action=user)
+        app.map_connect('ise', '/internalservererror', action=internal_server_error)
+
         resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertIn('X-After', resp.headers)
@@ -135,8 +128,13 @@ class TestApplication(unittest.TestCase):
         def test_after(request, response):
             response.headers['X-After'] = 'true'
 
-        app = Distill(base_node=Website(), before=test_before, after=test_after)
+        map_ = Mapper()
+        map_.connect('userinfo', '/:user/userinfo', action=userinfo)
+        map_.connect('ise', '/internalservererror', action=internal_server_error)
+        app = Distill(rmap=map_, before=test_before, after=test_after)
+
         app.add_renderer('prettyjson', JSON(indent=4))
+        app.on_except(HTTPInternalServerError, handle_ise)
 
         resp, body = self.simulate_request(app, 'GET', '/Dreae/userinfo', None, '')
         self.assertIn('X-Before', resp.headers)
@@ -159,12 +157,19 @@ class TestApplication(unittest.TestCase):
 
         resp = Response()
 
-        def start_response(status, headers, exc_info=None):
+        def start_response(status, headers, exc_info_=None):
             resp.status = status
             resp.headers = dict(headers)
-            if exc_info:
-                raise exc_info[0](exc_info[1])  # No traceback because python3
+            global exc_info
+            exc_info = exc_info_
 
         body = app(fake_env, start_response)
+
+        if exc_info:
+            raise exc_info[0](exc_info[1])  # No traceback because python3
+
         body = body[0]
         return resp, body.decode('utf-8')
+
+if __name__ == '__main__':
+    unittest.main()

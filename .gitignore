@@ -10,3 +10,5 @@ locustfile.py
 *.egg-info/
 .idea/
 htmlcov/
+build/
+dist/

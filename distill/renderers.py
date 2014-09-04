@@ -78,8 +78,8 @@ def renderer(template):
     """
     def _render(method):
         @wraps(method)
-        def _call(context, request, response):
-            data = method(context, request, response)
+        def _call(request, response):
+            data = method(request, response)
             return RenderFactory.render(template, data, request, response)
         return _call
     return _render
