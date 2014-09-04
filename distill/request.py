@@ -44,9 +44,9 @@ class Request(object):
         else:
             self.content_type = None
         if 'CONTENT_LENGTH' in env:
-            self.content_length = env['CONTENT_LENGTH']
+            self.content_length = int(env['CONTENT_LENGTH'])
         else:
-            self.content_length = None
+            self.content_length = 0
 
         if 'QUERY_STRING' in env and env['QUERY_STRING']:
             self.GET = parse_query_string(env['QUERY_STRING'])
