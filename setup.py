@@ -2,14 +2,14 @@ from setuptools import setup
 
 setup(
     name='distill_framework',
-    version='0.0.2',
+    version='0.0.3',
     packages=['distill'],
     url='https://github.com/Dreae/Distill',
     license='MIT License',
     author='Dreae',
     author_email='penitenttangentt@gmail.com',
     description='Just another python web framework',
-    requires=['mako'],
+    install_requires=['mako'],
     test_suite='nose.collector',
     classifiers=[
         "Development Status :: 4 - Beta",
