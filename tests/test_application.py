@@ -122,25 +122,43 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(resp.status, '200 OK')
 
     def test_before_after(self):
-        def test_before(request, response):
-            response.headers['X-Before'] = 'true'
+        def test_before1(request, response, next_):
+            response.headers['X-Before1'] = 'true'
+            next_()
 
-        def test_after(request, response):
-            response.headers['X-After'] = 'true'
+        def test_after1(request, response, next_):
+            response.headers['X-After1'] = 'true'
+            next_()
+
+        def test_before2(request, response, next_):
+            response.headers['X-Before2'] = 'true'
+            next_()
+
+        def test_after2(request, response, next_):
+            response.headers['X-After2'] = 'true'
+            next_()
 
         map_ = Mapper()
         map_.connect('userinfo', '/:user/userinfo', action=userinfo)
         map_.connect('ise', '/internalservererror', action=internal_server_error)
-        app = Distill(rmap=map_, before=test_before, after=test_after)
+        app = Distill(rmap=map_)
+        app.use(test_before1)
+        app.use(test_before2)
+        app.use(test_after1, before=False)
+        app.use(test_after2, before=False)
 
         app.add_renderer('prettyjson', JSON(indent=4))
         app.on_except(HTTPInternalServerError, handle_ise)
 
         resp, body = self.simulate_request(app, 'GET', '/Dreae/userinfo', None, '')
-        self.assertIn('X-Before', resp.headers)
-        self.assertEqual(resp.headers['X-Before'], 'true')
-        self.assertIn('X-After', resp.headers)
-        self.assertEqual(resp.headers['X-After'], 'true')
+        self.assertIn('X-Before1', resp.headers)
+        self.assertEqual(resp.headers['X-Before1'], 'true')
+        self.assertIn('X-After1', resp.headers)
+        self.assertEqual(resp.headers['X-After1'], 'true')
+        self.assertIn('X-Before2', resp.headers)
+        self.assertEqual(resp.headers['X-Before2'], 'true')
+        self.assertIn('X-After2', resp.headers)
+        self.assertEqual(resp.headers['X-After2'], 'true')
 
         self.assertRaises(HTTPErrorResponse, self.simulate_request, app, 'POST', '/Foo/userinfo', None, '')
         resp, body = self.simulate_request(app, 'GET', '/internalservererror', None, '')

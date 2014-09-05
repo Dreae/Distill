@@ -1,5 +1,5 @@
-import inspect
 import sys
+from functools import partial
 from routes import Mapper
 from distill.exceptions import HTTPNotFound, HTTPErrorResponse
 from distill.request import Request
@@ -8,7 +8,7 @@ from distill.renderers import RenderFactory
 
 
 class Distill(object):
-    def __init__(self, rmap=None, before=None, after=None, settings=None):
+    def __init__(self, rmap=None, settings=None):
         """ INIT
 
         Args:
@@ -34,8 +34,8 @@ class Distill(object):
             self._session_factory = None
 
         self.settings = settings
-        self._before = before
-        self._after = after
+        self._before = []
+        self._after = []
         self._exc_listeners = {}
 
         RenderFactory.create(settings)
@@ -90,8 +90,7 @@ class Distill(object):
         """
         resp = Response()
 
-        if self._before:
-            self._before(req, resp)
+        self._do_before(req, resp)
 
         context = self.map.match(req.path, env)
 
@@ -105,13 +104,36 @@ class Distill(object):
             else:
                 resp.body = str(res)
 
-            if self._after:
-                self._after(req, resp)
+            self._do_after(req, resp)
         else:
             raise HTTPNotFound()
 
         resp.finalize(env.get('wsgi.file_wrapper'))
         return resp
+
+    def _do_before(self, req, resp):
+        if self._before:
+            def next_(n):
+                if n == len(self._before):
+                    return
+                self._before[n](req, resp, partial(next_, n + 1))
+
+            self._before[0](req, resp, partial(next_, 1))
+
+    def _do_after(self, req, resp):
+        if self._after:
+            def next_(n):
+                if n == len(self._after):
+                    return
+                self._after[n](req, resp, partial(next_, n + 1))
+
+            self._after[0](req, resp, partial(next_, 1))
+
+    def use(self, function, before=True):
+        if not before:
+            self._after.append(function)
+        else:
+            self._before.append(function)
 
     def map_connect(self, *args, **kwargs):
         self.map.connect(*args, **kwargs)
