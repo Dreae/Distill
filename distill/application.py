@@ -27,12 +27,7 @@ class Distill(object):
         if settings is None:
             settings = {}
 
-        if 'distill.sessions.factory' in settings:
-            components = settings['distill.sessions.factory'].split('.')
-            mod = __import__('.'.join(components[:-1]), globals(), locals(), components[-1:])
-            self._session_factory = getattr(mod, components[len(components) - 1])(settings)
-        else:
-            self._session_factory = None
+        self._session_factory = None
 
         self.settings = settings
         self._before = []
@@ -53,7 +48,7 @@ class Distill(object):
         req = Request(env, self)
 
         if self._session_factory:
-            self._session_factory.load(req)
+            req.session = self._session_factory(req)
 
         try:
             resp = self._request(env, req)
@@ -66,27 +61,20 @@ class Distill(object):
                 else:
                     resp.body = str(res)
 
-                if self._session_factory:
-                    self._session_factory.save(req, resp)
                 resp.finalize(env.get('wsgi.file_wrapper'))
                 start_response(resp.status, resp.wsgi_headers)
                 return resp.iterable
             else:
-                if self._session_factory:
-                    self._session_factory.save(req, ex)
                 start_response(ex.status, ex.wsgi_headers, sys.exc_info())
                 # By spec execution shouldn't get here, but incase it does
                 return []  # pragma: no cover
-
-        if self._session_factory:
-            self._session_factory.save(req, resp)
 
         start_response(resp.status, resp.wsgi_headers)
         return resp.iterable
 
     def _request(self, env, req):
         """ Processes the request
-         Notes:
+        Notes:
             This method acts as a wrapper to ease exception handling
 
         Args:
@@ -137,16 +125,57 @@ class Distill(object):
             for f in self._after:
                 f(req, resp)
 
+        if req.resp_callbacks:
+            for f in req.resp_callbacks:
+                f(req, resp)
+
     def use(self, function, before=True):
+        """ Adds a middleware to the application
+        Notes:
+            This method allows you to add middleware
+            that will be called either before or after
+            a request has been handled by the application
+            The function should accept two positional arguments
+            function(request, response)
+
+        Args:
+            function: The function to be called
+            befre: Should the function be called before a request
+        """
         if not before:
             self._after.append(function)
         else:
             self._before.append(function)
 
     def map_connect(self, *args, **kwargs):
+        """ Adds a route to the routing table
+
+        Notes:
+            For further documentation see routes documection
+            on the Mapper object:
+
+            http://routes.readthedocs.org/en/latest/index.html
+
+        Args:
+            args: Positional arguments to be passed to the mapper
+            kwargs: Keyword arguments to be passed to the mapper
+        """
         self.map.connect(*args, **kwargs)
 
     def add_controller(self, name, controller):
+        """ Adds a controller to the application
+
+        Notes:
+            The controller should be passed as a class, not an instance
+            The name provided is used to lookup the contoller based
+            on the results of a route match.  You should be sure this
+            name matches the one you provided to the controller argument
+            of map_connect
+
+        Args:
+            name: Name of the controller
+            controller: Controller class
+        """
         if isclass(controller):
             self._controllers[name] = controller
         else:
@@ -154,6 +183,9 @@ class Distill(object):
 
     def on_except(self, exc, method):
         self._exc_listeners[exc] = method
+
+    def set_session_factory(self, session_factory):
+        self._session_factory = session_factory
 
     @staticmethod
     def add_renderer(name, serializer):

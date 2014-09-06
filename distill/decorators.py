@@ -5,7 +5,10 @@ def before(method):
     def _do(action):
         @wraps(action)
         def call(*args):
-            method(*args)
+            if len(args) == 2:
+                method(*args)
+            else:
+                method(args[1], args[2])
             return action(*args)
         return call
     return _do
@@ -16,7 +19,10 @@ def after(method):
         @wraps(action)
         def call(*args):
             res = action(*args)
-            method(*args)
+            if len(args) == 2:
+                method(*args)
+            else:
+                method(args[1], args[2])
             return res
         return call
     return _do

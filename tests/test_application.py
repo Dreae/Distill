@@ -1,4 +1,5 @@
 import os
+from distill.sessions import UnencryptedLocalSessionStorage
 
 try:
     import testtools as unittest
@@ -38,6 +39,10 @@ def POST_home(request, response):
 @after(do_after)
 @renderer('site.mako')
 def GET_home(request, response):
+    def callback(r, q):
+        q.headers['X-Resp-Callback'] = 'True'
+
+    request.add_response_callback(callback)
     return {}
 
 
@@ -81,18 +86,10 @@ def create_bad_request(request, response):
     return HTTPBadRequest()
 
 
-def cont_do_before(controller, request, response):
-    response.headers['X-Before'] = 'true'
-
-
-def cont_do_after(controller, request, response):
-    response.headers['X-After'] = 'true'
-
-
 class TestController(object):
     @renderer('prettyjson')
-    @before(cont_do_before)
-    @after(cont_do_after)
+    @before(do_before)
+    @after(do_after)
     def GET_home(self, request, response):
         return {'data': True}
 
@@ -104,10 +101,11 @@ class TestApplication(unittest.TestCase):
     def test_application(self):
         app = Distill(settings={
             'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
-            'distill.sessions.factory': 'distill.sessions.UnencryptedLocalSessionStorage',
             'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
         }, controllers={'testcontrollerinit': TestController}
         )
+
+        app.set_session_factory(UnencryptedLocalSessionStorage(app.settings))
         app.add_renderer('prettyjson', JSON(indent=4))
         app.add_controller('testcontroller', TestController)
         app.add_controller('testcontroller2', TestController())
@@ -128,6 +126,7 @@ class TestApplication(unittest.TestCase):
         resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertIn('X-After', resp.headers)
+        self.assertIn('X-Resp-Callback', resp.headers)
         self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/foo/bar/baz', None, '')
 
         resp, body = self.simulate_request(app, 'GET', '/controller', None, '')

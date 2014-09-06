@@ -2,7 +2,7 @@ import os
 import shutil
 from distill.request import Request
 from distill.response import Response
-from distill.sessions import Session, UnencryptedLocalSessionStorage
+from distill.sessions import UnencryptedLocalSessionStorage
 
 try:
     import testtools as unittest
@@ -11,55 +11,6 @@ except ImportError:
 
 
 class TestSessions(unittest.TestCase):
-    def test_session_dict(self):
-        sess = Session()
-        sess['Foo'] = "bar"
-        self.assertTrue(sess.changed)
-        self.assertIn('Foo', sess)
-        self.assertEqual(sess['Foo'], 'bar')
-
-        sess = Session({"Foo": "Bar"})
-        self.assertFalse(sess.changed)
-        self.assertIn('Foo', sess)
-        self.assertEqual(sess['Foo'], 'Bar')
-        del sess['Foo']
-        self.assertNotIn('Foo', sess)
-        sess['Baz'] = {"Foo": "Bar"}
-        self.assertTrue(sess.changed)
-        self.assertEqual(len(sess), 1)
-
-        sess = Session({"Foo": "Bar", "Baz": {"Foo": "Bar"}})
-        self.assertEqual(sess['Baz'], {"Foo": "Bar"})
-        sess['Baz']['Foo'] = 'Foobar'
-        self.assertFalse(sess.changed)
-        sess.modified()
-        self.assertTrue(sess.changed)
-
-        sess = Session({"Foo": "Bar"})
-        self.assertFalse(sess.changed)
-        sess.update({"Foo": "Baz"})
-        self.assertTrue(sess.changed)
-        self.assertEqual(sess['Foo'], 'Baz')
-        sess.setdefault('Bar', 'Foo')
-        self.assertEqual(sess['Bar'], 'Foo')
-        sess.setdefault('Bar', 'Baz')
-        self.assertNotEqual(sess['Bar'], 'Baz')
-        self.assertEqual(sess.get('Bar', None), 'Foo')
-        self.assertEqual(sess.get('Baz', None), None)
-        sess.invalidate()
-        self.assertTrue(sess.invalid)
-        self.assertEqual(len(sess), 0)
-
-        sess = Session({"Foo": "Bar"})
-        self.assertEqual(dict(sess.items()), {"Foo": "Bar"})
-        sess['Bar'] = 'Foo'
-        for k in sess.keys():
-            self.assertIn(k, ['Foo', 'Bar'])
-        for v in sess.values():
-            self.assertIn(v, ['Foo', 'Bar'])
-        for k in sess:
-            self.assertIn(k, sess.keys())
-
     def test_unencrypted_local_storage(self):
         store = os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
         if os.path.exists(store):
@@ -80,10 +31,28 @@ class TestSessions(unittest.TestCase):
 
         req = Request(fake_env, FakeApp)
         resp = Response()
-        factory.load(req)
+        req.session = factory(req)
         self.assertEqual(len(req.session), 0)
         req.session['Foo'] = 'bar'
-        factory.save(req, resp)
+        req.session['Bar'] = 'foo'
+
+        req.session.flash('test', 'test')
+        queue = req.session.peek_flash('test')
+        self.assertEqual(queue, ['test'])
+        self.assertIn('_f_test', req.session)
+        req.session.flash('test', 'test')
+        req.session.flash('test', 'test', allow_duplicate=False)
+        queue = req.session.pop_flash('test')
+        self.assertEqual(queue, ['test', 'test'])
+        self.assertNotIn('_f_test', req.session)
+
+        token = req.session.get_csrf_token()
+        self.assertEqual(req.session['__csrft__'], token)
+        req.session.new_csrf_token()
+        self.assertNotEqual(req.session.get_csrf_token(), token)
+
+        for f in req.resp_callbacks:
+            f(req, resp)
         self.assertEqual(len(resp.headers), 1)
 
         files = []
@@ -94,16 +63,20 @@ class TestSessions(unittest.TestCase):
         req = Request(fake_env, FakeApp)
         req.cookies['ssid'] = files[0]
         resp = Response()
-        factory.load(req)
+        req.session = factory(req)
         self.assertIn('Foo', req.session)
-        factory.save(req, resp)
+        self.assertFalse(req.session.dirty)
+        req.session.save(resp)
+        req.session.changed()
+        self.assertTrue(req.session.dirty)
         req.session['Foo'] = 'Bar'
-        factory.save(req, resp)
         req.session.invalidate()
-        factory.save(req, resp)
+        self.assertTrue(req.session.invalid)
+        for f in req.resp_callbacks:
+            f(req, resp)
         self.assertFalse(os.path.isfile(os.path.join(store, files[0])))
 
         req = Request(fake_env, FakeApp)
         req.cookies['ssid'] = files[0]
-        factory.load(req)
+        req.session = factory(req)
         self.assertNotIn('ssid', req.cookies)

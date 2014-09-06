@@ -1,4 +1,6 @@
 import base64
+from functools import wraps
+from distill import PY3
 import os
 try:  # pragma: no cover
     import cPickle as pickle
@@ -13,196 +15,189 @@ class BaseSessionFactory(object):  # pragma: no cover
         This class should be overridden by any custom session factory
         you wish to create.
     """
-    def load(self, request):
-        """ Loads the session for the given request
-
-         Note:
-            This method is implementation dependent. It should load
-            the session data as appropriate, using the session cookie
-            and initialize the session on the request
-
-         Args:
-            request: the request for which the session should be loaded
-        """
-        raise NotImplementedError()
-
-    def save(self, request, response):
-        """ Saves the request's session
+    def __call__(self, request):
+        """ Returns a new session object
 
         Notes:
-            This method should save the session to the underlying storage
-            engine.  This method should only save the session data if
-            request.session.changed == True, otherwise you will be
-            wasting resources.  Response is given so that any Set-Cookie
-            headers can be set as needed.
-
-        Args:
-            request: The requests whos session should be saved
-            response: The current response object
+            Calling the session factory should return a session
+            class, which will then be instatiated by the framework
         """
-        raise NotImplementedError()
+        raise NotImplementedError('Session factory __call__ not implemented')
+
+
+class BaseSession(dict):  # pragma: no cover
+    """ This class stores all session data
+
+    Notes:
+        This is an abstract class.  You'll be expected
+        to supply implementation for all methods on this class
+    """
+    def invalidate(self):
+        raise NotImplementedError('Session.invalidate not implemented')
+
+    def changed(self):
+        raise NotImplementedError('Session.changed not implemented')
+
+    def flash(self, msg, queue='', allow_duplicate=True):
+        raise NotImplementedError('Session.flash not implemented')
+
+    def pop_flash(self, queue=''):
+        raise NotImplementedError('Session.pop_flash not implemented')
+
+    def peek_flass(self, queue=''):
+        raise NotImplementedError('Session.peek_flass not implemented')
+
+    def new_csrf_token(self):
+        raise NotImplementedError('Session.new_csrf_token not implemented')
+
+    def get_csrf_token(self):
+        raise NotImplementedError('Session.get_csrf_token not implemented')
 
     @staticmethod
     def new_ssid():
         """ Generates a new SSID """
-        return str(base64.b32encode(os.urandom(32)))
+        if PY3:  # pragma: no cover
+            return base64.b32encode(os.urandom(32)).decode("ascii")
+        else:
+            return base64.b32encode(os.urandom(32))
 
 
-class Session(dict):
-    """ This class stores all session data
+def modified(func):
+    @wraps(func)
+    def access(session, *args, **kwargs):
+        if not session.dirty:
+            session.dirty = True
+
+            def save_session(request, response):
+                request.session.save(response)
+
+            session.request.add_response_callback(save_session)
+        return func(session, *args, **kwargs)
+
+    return access
+
+
+def UnencryptedLocalSessionStorage(settings):
+    """ Creates a new UnencryptedLocalSession
 
     Notes:
-        This class is a subclass of dict so that it can
-        implement the necessary tracking of changes.
-        Keep in mind, should you change any mutable variable
-        stored in the session, such as a dict or list, you
-        should manually call session.modified(), as simply
-        using session['dict']['key'] = value does not trigger
-        the changed flag
+        Settings is processed for session max_age and
+        storage directory.  If these are not present
+        in the settings, sensible defaults are used
+
+    Args:
+        settings: Current application settings dict
     """
-    def __init__(self, data=None, **kwargs):
-        if data is None:
+    dir_ = './distill/sess'
+    if 'distill.sessions.directory' in settings:  # pragma: no cover
+        dir_ = settings['distill.sessions.directory']
+
+    if not os.path.exists(dir_):
+        os.mkdir(dir_)
+
+    max_age = 10080
+    if 'distill.sessions.max_age' in settings:  # pragma: no cover
+        max_age = settings['distill.sessions.max_age']
+
+    class UnecryptedLocalSession(BaseSession):
+        _dir = dir_
+        _max_age = max_age
+
+        def __init__(self, request):
+            self.request = request
+            self.new = True
+            self.dirty = False
+            self.ssid = request.cookies.get('ssid')
+            self.invalid = False
             data = {}
 
-        self._dict = dict()
-        self.changed = False
-        self.invalid = False
-        self._dict.update(data, **kwargs)
+            if self.ssid:
+                store = os.path.join(self._dir, request.cookies['ssid'])
+                if not os.path.isfile(store):
+                    # File has been deleted, remove cookie from request
+                    del request.cookies['ssid']
+                    return
 
-    def __getitem__(self, item):
-        return self._dict[item]
+                with open(store, 'rb') as fp:
+                    data.update(pickle.load(fp))
 
-    def __setitem__(self, key, value):
-        self._dict[key] = value
-        self.changed = True
+            dict.__init__(self, data)
 
-    def __delitem__(self, key):
-        del self._dict[key]
-        self.changed = True
+        @modified
+        def changed(self):
+            self.dirty = True
 
-    def __contains__(self, item):
-        return item in self._dict
+        @modified
+        def invalidate(self):
+            self.invalid = True
 
-    def __iter__(self):
-        return self._dict.__iter__()
+        get = dict.get
+        __getitem__ = dict.__getitem__
+        items = dict.items
+        __iter__ = dict.__iter__
+        values = dict.values
+        keys = dict.keys
+        __contains__ = dict.__contains__
+        __len__ = dict.__len__
 
-    def __len__(self):
-        return self._dict.__len__()
+        clear = modified(dict.clear)
+        update = modified(dict.update)
+        setdefault = modified(dict.setdefault)
+        pop = modified(dict.pop)
+        popitem = modified(dict.popitem)
+        __setitem__ = modified(dict.__setitem__)
+        __delitem__ = modified(dict.__delitem__)
 
-    def update(self, E=None, **F):
-        self._dict.update(E, **F)
-        self.changed = True
+        def flash(self, msg, queue='', allow_duplicate=True):
+            msgs = self.setdefault('_f_' + queue, [])
+            if allow_duplicate or msg not in msgs:
+                msgs.append(msg)
 
-    def clear(self):
-        self.changed = True
-        self._dict.clear()
+        def pop_flash(self, queue=''):
+            return self.pop('_f_' + queue, [])
 
-    def items(self):
-        return self._dict.items()
+        def peek_flash(self, queue=''):
+            return self.get('_f_' + queue, [])
 
-    def keys(self):
-        return self._dict.keys()
+        def new_csrf_token(self):
+            token = base64.b64encode(os.urandom(32))
+            self['__csrft__'] = token
+            return token
 
-    def get(self, k, d=None):
-        return self._dict.get(k, d)
+        def get_csrf_token(self):
+            token = self.get('__csrft__', None)
+            if token is None:
+                token = self.new_csrf_token()
+            return token
 
-    def setdefault(self, k, d=None):
-        if not k in self._dict:
-            self[k] = d
-            self.changed = True
+        def save(self, response):
+            """ Saves session data to a file
 
-    def invalidate(self):
-        self.invalid = True
-        self.clear()
+            Notes:
+                This method serializes all data contained in the
+                session object using pickle.  As such, all variables
+                stored in the session should be pickleable.  It is
+                not recomended to use the session to store python
+                objects, instead you should store their state
 
-    def modified(self):
-        self.changed = True
+            Args:
+                response: The current response object
+            """
+            if not self.dirty:
+                return
 
+            if self.ssid is None:
+                self.ssid = self.new_ssid()
+                response.set_cookie('ssid', self.ssid, max_age=self._max_age)
 
-class UnencryptedLocalSessionStorage(BaseSessionFactory):
-    """ UnencryptedLocalSessionStorage
+            store = os.path.join(self._dir, self.ssid)
 
-    Notes:
-        This session factory stores sessions unencrypted
-        on the disk using python's pickle module. Suitable
-        if you do not store sensitive information in the
-        session
-    """
-    def __init__(self, settings):
-        """ Init
+            if self.invalid:
+                os.remove(store)
+                response.set_cookie('ssid', '', max_age=0)
+                return
 
-        Notes:
-            Settings is processed for session max_age and
-            storage directory.  If these are not present
-            in the settings, sensible defaults are used
+            with open(store, 'wb+') as fp:
+                pickle.dump(list(self.items()), fp, pickle.HIGHEST_PROTOCOL)
 
-        Args:
-            settings: Current application settings dict
-        """
-        if 'distill.sessions.directory' in settings:  # pragma: no cover
-            self.dir = settings['distill.sessions.directory']
-        else:  # pragma: no cover
-            self.dir = './distill/sess'
-
-        if not os.path.exists(self.dir):
-            os.mkdir(self.dir)
-
-        if 'distill.sessions.max_age' in settings:  # pragma: no cover
-            self.max_age = settings['distill.sessions.max_age']
-        else:  # pragma: no cover
-            self.max_age = 10080
-
-    def load(self, request):
-        """ Loads the Sesssion data from a file using pickle
-
-        Notes:
-            This method loads the session data from the file.
-            The session data should be a dict that has been
-            serialized using the pickle module
-
-        Args:
-            request: The request object who's session to load
-        """
-        if not 'ssid' in request.cookies:
-            return
-        store = os.path.join(self.dir, request.cookies['ssid'])
-        if not os.path.isfile(store):
-            # File has been deleted, remove cookie from request
-            del request.cookies['ssid']
-            return
-
-        with open(store, 'rb') as fp:
-            request.session = Session(pickle.load(fp))
-
-    def save(self, request, response):
-        """ Saves session data to a file
-
-        Notes:
-            This method serializes all data contained in the
-            session object using pickle.  As such, all variables
-            stored in the session should be pickleable.  It is
-            not recomended to use the session to store python
-            objects, instead you should store their state
-
-        Args:
-            request: The request who's session to save
-            response: The current response object
-        """
-        if not request.session.changed:
-            return
-
-        if not 'ssid' in request.cookies:
-            ssid = self.new_ssid()
-            response.set_cookie('ssid', ssid, max_age=self.max_age)
-        else:
-            ssid = request.cookies['ssid']
-
-        store = os.path.join(self.dir, ssid)
-
-        if request.session.invalid:
-            os.remove(store)
-            response.set_cookie('ssid', '', max_age=0)
-            return
-
-        with open(store, 'wb+') as fp:
-            pickle.dump(list(request.session.items()), fp, pickle.HIGHEST_PROTOCOL)
+    return UnecryptedLocalSession

@@ -2,8 +2,6 @@ import cgi
 import re
 from routes import URLGenerator
 from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
-from distill.sessions import Session
-
 
 class Request(object):
     _cookiere = re.compile(r'([^=]+)=([^;]+)(?:;\s*)*')
@@ -16,13 +14,14 @@ class Request(object):
 
         Args:
             env: The wsgi environ variable
-            settings: The application's settings dict
+            app: The application's instance
         """
 
-        self.settings = app.settings
+        self.settings = app.settings.copy()
         self.env = env
         self.url = URLGenerator(app.map, env)
-        self.session = Session()
+        self.session = None
+        self.resp_callbacks = []
 
         self.stream = env['wsgi.input']
         self.errors = env['wsgi.errors']
@@ -107,3 +106,6 @@ class Request(object):
     def method(self):
         """Returns the request method"""
         return self.env['REQUEST_METHOD']
+
+    def add_response_callback(self, function):
+        self.resp_callbacks.append(function)
