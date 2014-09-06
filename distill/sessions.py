@@ -1,5 +1,4 @@
 import base64
-from functools import wraps
 from distill import PY3
 import os
 try:  # pragma: no cover
@@ -63,7 +62,6 @@ class BaseSession(dict):  # pragma: no cover
 
 
 def modified(func):
-    @wraps(func)
     def access(session, *args, **kwargs):
         if not session.dirty:
             session.dirty = True
