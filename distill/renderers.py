@@ -78,9 +78,12 @@ def renderer(template):
     """
     def _render(method):
         @wraps(method)
-        def _call(request, response):
-            data = method(request, response)
-            return RenderFactory.render(template, data, request, response)
+        def _call(*args):
+            data = method(*args)
+            if len(args) == 2:
+                return RenderFactory.render(template, data, *args)
+            else:
+                return RenderFactory.render(template, data, args[1], args[2])
         return _call
     return _render
 

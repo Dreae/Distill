@@ -1,4 +1,5 @@
 import os
+
 try:
     import testtools as unittest
 except ImportError:
@@ -70,6 +71,7 @@ def internal_server_error(request, response):
 
 
 def handle_ise(request, response):
+    print(response.description)
     resp = Response()
     resp.body = "Whoops"
     return resp
@@ -77,6 +79,22 @@ def handle_ise(request, response):
 
 def create_bad_request(request, response):
     return HTTPBadRequest()
+
+
+def cont_do_before(controller, request, response):
+    response.headers['X-Before'] = 'true'
+
+
+def cont_do_after(controller, request, response):
+    response.headers['X-After'] = 'true'
+
+
+class TestController(object):
+    @renderer('prettyjson')
+    @before(cont_do_before)
+    @after(cont_do_after)
+    def GET_home(self, request, response):
+        return {'data': True}
 
 
 exc_info = None
@@ -88,21 +106,50 @@ class TestApplication(unittest.TestCase):
             'distill.document_root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'res')),
             'distill.sessions.factory': 'distill.sessions.UnencryptedLocalSessionStorage',
             'distill.sessions.directory': os.path.abspath(os.path.join(os.path.dirname(__file__), 'sess'))
-        })
+        }, controllers={'testcontrollerinit': TestController}
+        )
         app.add_renderer('prettyjson', JSON(indent=4))
+        app.add_controller('testcontroller', TestController)
+        app.add_controller('testcontroller2', TestController())
         app.on_except(HTTPBadRequest, bad_request)
         app.on_except(HTTPInternalServerError, handle_ise)
         app.map_connect('home', '/', action=GET_home, conditions={"method": ["GET"]})
         app.map_connect('home', '/', action=POST_home, conditions={"method": ["POST"]})
         app.map_connect('badrequest', '/badrequest', action=create_bad_request)
         app.map_connect('userinfo', '/:user/userinfo', action=userinfo)
-        app.map_connect('user', '/:user', action=user)
         app.map_connect('ise', '/internalservererror', action=internal_server_error)
+        app.map_connect('homecontroller', '/controller', action='GET_home', controller='testcontroller')
+        app.map_connect('homecontroller1', '/controller2', action='GET_home', controller='testcontroller2')
+        app.map_connect('homecontroller1', '/controllerinit', action='GET_home', controller='testcontrollerinit')
+        app.map_connect('homecontroller2', '/controllerNA', action='GET_home', controller='nocontroller')
+        app.map_connect('homecontroller3', '/actionNA', action='noaction', controller='testcontroller')
+        app.map_connect('user', '/:user', action=user)
 
         resp, body = self.simulate_request(app, 'GET', '', None, '')
         self.assertIn('X-Before', resp.headers)
         self.assertIn('X-After', resp.headers)
         self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/foo/bar/baz', None, '')
+
+        resp, body = self.simulate_request(app, 'GET', '/controller', None, '')
+        self.assertIn('X-Before', resp.headers)
+        self.assertIn('X-After', resp.headers)
+        data = json.loads(body)
+        self.assertTrue(data['data'])
+
+        resp, body = self.simulate_request(app, 'GET', '/controllerinit', None, '')
+        self.assertIn('X-Before', resp.headers)
+        self.assertIn('X-After', resp.headers)
+        data = json.loads(body)
+        self.assertTrue(data['data'])
+
+        self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/controllerNA', None, '')
+        self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/actionNA', None, '')
+
+        resp, body = self.simulate_request(app, 'GET', '/controller2', None, '')
+        self.assertIn('X-Before', resp.headers)
+        self.assertIn('X-After', resp.headers)
+        data = json.loads(body)
+        self.assertTrue(data['data'])
 
         resp, body = self.simulate_request(app, 'GET', '/badrequest', None, '')
         data = json.loads(body)
@@ -122,21 +169,17 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(resp.status, '200 OK')
 
     def test_before_after(self):
-        def test_before1(request, response, next_):
+        def test_before1(request, response):
             response.headers['X-Before1'] = 'true'
-            next_()
 
-        def test_after1(request, response, next_):
+        def test_after1(request, response):
             response.headers['X-After1'] = 'true'
-            next_()
 
-        def test_before2(request, response, next_):
+        def test_before2(request, response):
             response.headers['X-Before2'] = 'true'
-            next_()
 
-        def test_after2(request, response, next_):
+        def test_after2(request, response):
             response.headers['X-After2'] = 'true'
-            next_()
 
         map_ = Mapper()
         map_.connect('userinfo', '/:user/userinfo', action=userinfo)
@@ -188,6 +231,7 @@ class TestApplication(unittest.TestCase):
 
         body = body[0]
         return resp, body.decode('utf-8')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,4 @@
-from distill.helpers import CaseInsensitiveDict
+from distill.helpers import CaseInsensitiveDict, url_decode
 
 try:
     import testtools as unittest
@@ -32,3 +32,7 @@ class TestHelpers(unittest.TestCase):
 
         for k in dic.keys():
             self.assertIn(k, ["Foo", "Bar", "Baz"])
+
+    def test_urldecdoe(self):
+        url = "%7B%22Foo%22%3A+%22foo+bar%22%7d"
+        self.assertEqual(url_decode(url), '{"Foo": "foo bar"}')

@@ -4,9 +4,9 @@ from functools import wraps
 def before(method):
     def _do(action):
         @wraps(action)
-        def call(request, response):
-            method(request, response)
-            return action(request, response)
+        def call(*args):
+            method(*args)
+            return action(*args)
         return call
     return _do
 
@@ -14,9 +14,9 @@ def before(method):
 def after(method):
     def _do(action):
         @wraps(action)
-        def call(request, response):
-            res = action(request, response)
-            method(request, response)
+        def call(*args):
+            res = action(*args)
+            method(*args)
             return res
         return call
     return _do

@@ -104,7 +104,7 @@ def url_decode(string):
     tokens = decoded_uri.split('%')
     decoded_uri = tokens[0]
     for token in tokens[1:]:
-        decoded_uri += _HEX_TO_BYTE[token[:2]] + token[2:]
+        decoded_uri += _HEX_TO_BYTE[token[:2].lower()] + token[2:]
 
     return decoded_uri
 

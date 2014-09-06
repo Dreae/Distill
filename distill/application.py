@@ -1,3 +1,4 @@
+from inspect import isclass
 import sys
 from functools import partial
 from routes import Mapper
@@ -8,7 +9,7 @@ from distill.renderers import RenderFactory
 
 
 class Distill(object):
-    def __init__(self, rmap=None, settings=None):
+    def __init__(self, rmap=None, settings=None, controllers=None):
         """ INIT
 
         Args:
@@ -37,6 +38,9 @@ class Distill(object):
         self._before = []
         self._after = []
         self._exc_listeners = {}
+        self._controllers = {}
+        if controllers is not None:
+            self._controllers.update(controllers)
 
         RenderFactory.create(settings)
 
@@ -55,7 +59,7 @@ class Distill(object):
             resp = self._request(env, req)
         except HTTPErrorResponse as ex:
             if self._exc_listeners and ex.__class__ in self._exc_listeners:
-                resp = Response(ex.status, ex.headers)
+                resp = ex
                 res = self._exc_listeners[ex.__class__](req, resp)
                 if isinstance(res, Response):
                     resp = res
@@ -93,11 +97,23 @@ class Distill(object):
         self._do_before(req, resp)
 
         context = self.map.match(req.path, env)
+        res = None
 
         if context is not None:
             req.matchdict = context
-            res = context['action'](req, resp)
-            if isinstance(res, Response):
+            if 'controller' in context and context['controller'] in self._controllers:
+                if hasattr(self._controllers[context['controller']], context['action']):
+                    cls = self._controllers[context['controller']]
+                    controller = cls()
+                    res = getattr(controller, context['action'])(req, resp)
+            elif hasattr(context['action'], '__call__'):
+                res = context['action'](req, resp)
+            else:
+                raise HTTPNotFound()
+
+            if res is None:
+                raise HTTPNotFound()
+            elif isinstance(res, Response):
                 if isinstance(res, HTTPErrorResponse):
                     raise res
                 resp = res
@@ -113,21 +129,13 @@ class Distill(object):
 
     def _do_before(self, req, resp):
         if self._before:
-            def next_(n):
-                if n == len(self._before):
-                    return
-                self._before[n](req, resp, partial(next_, n + 1))
-
-            self._before[0](req, resp, partial(next_, 1))
+            for f in self._before:
+                f(req, resp)
 
     def _do_after(self, req, resp):
         if self._after:
-            def next_(n):
-                if n == len(self._after):
-                    return
-                self._after[n](req, resp, partial(next_, n + 1))
-
-            self._after[0](req, resp, partial(next_, 1))
+            for f in self._after:
+                f(req, resp)
 
     def use(self, function, before=True):
         if not before:
@@ -137,6 +145,12 @@ class Distill(object):
 
     def map_connect(self, *args, **kwargs):
         self.map.connect(*args, **kwargs)
+
+    def add_controller(self, name, controller):
+        if isclass(controller):
+            self._controllers[name] = controller
+        else:
+            self._controllers[name] = controller.__class__
 
     def on_except(self, exc, method):
         self._exc_listeners[exc] = method
