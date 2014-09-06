@@ -3,6 +3,7 @@ import re
 from routes import URLGenerator
 from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
 
+
 class Request(object):
     _cookiere = re.compile(r'([^=]+)=([^;]+)(?:;\s*)*')
 
@@ -42,7 +43,7 @@ class Request(object):
             self.content_type = env['HTTP_CONTENT_TYPE']
         else:
             self.content_type = None
-        if 'CONTENT_LENGTH' in env:
+        if 'CONTENT_LENGTH' in env and env['CONTENT_LENGTH']:
             self.content_length = int(env['CONTENT_LENGTH'])
         else:
             self.content_length = 0
