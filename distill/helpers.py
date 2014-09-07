@@ -73,7 +73,10 @@ ALLOWED_CHRS += '0123456789'
 def parse_query_string(query):
     """Parses an HTTP query string into a dict"""
     params = {}
-    for k, v in _QS_RE.findall(query):
+    q = query
+    if PY2:  # pragma: no cover
+        q = query.decode('ascii')
+    for k, v in _QS_RE.findall(q):
         params[k] = url_decode(v)
 
     return params

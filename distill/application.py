@@ -94,18 +94,18 @@ class Distill(object):
                     cls = self._controllers[context['controller']]
                     controller = cls()
                     res = getattr(controller, context['action'])(req, resp)
+                else:
+                    raise HTTPNotFound()
             elif hasattr(context['action'], '__call__'):
                 res = context['action'](req, resp)
             else:
                 raise HTTPNotFound()
 
-            if res is None:
-                raise HTTPNotFound()
-            elif isinstance(res, Response):
+            if isinstance(res, Response):
                 if isinstance(res, HTTPErrorResponse):
                     raise res
                 resp = res
-            else:
+            elif res is not None:
                 resp.body = str(res)
 
             self._do_after(req, resp)

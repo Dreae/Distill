@@ -83,7 +83,10 @@ class Response(object):
         if self.body:
             self.headers['Content-Length'] = str(len(self.body))
             if PY3:  # pragma: no cover
-                self.iterable = [bytes(self.body, 'utf-8')]
+                if type(self.body) == str:
+                    self.iterable = [bytes(self.body, 'utf-8')]
+                else:
+                    self.iterable = [bytes(self.body)]
             else:  # pragma: no cover
                 self.iterable = [self.body]
         elif self.file:

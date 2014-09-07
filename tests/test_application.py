@@ -94,6 +94,11 @@ class TestController(object):
         return {'data': True}
 
 
+def edit_res(request, response):
+    response.status = '719 I am not a teapot'
+    response.body = 'Hello'
+
+
 exc_info = None
 
 
@@ -121,6 +126,7 @@ class TestApplication(unittest.TestCase):
         app.map_connect('homecontroller1', '/controllerinit', action='GET_home', controller='testcontrollerinit')
         app.map_connect('homecontroller2', '/controllerNA', action='GET_home', controller='nocontroller')
         app.map_connect('homecontroller3', '/actionNA', action='noaction', controller='testcontroller')
+        app.map_connect('editresp', '/editresp', action=edit_res)
         app.map_connect('user', '/:user', action=user)
 
         resp, body = self.simulate_request(app, 'GET', '', None, '')
@@ -143,6 +149,10 @@ class TestApplication(unittest.TestCase):
 
         self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/controllerNA', None, '')
         self.assertRaises(HTTPNotFound, self.simulate_request, app, 'GET', '/actionNA', None, '')
+
+        resp, body = self.simulate_request(app, 'GET', '/editresp', None, '')
+        self.assertEqual(resp.status, '719 I am not a teapot')
+        self.assertEqual(body, 'Hello')
 
         resp, body = self.simulate_request(app, 'GET', '/controller2', None, '')
         self.assertIn('X-Before', resp.headers)

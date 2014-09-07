@@ -8,6 +8,7 @@ locustfile.py
 *.pyc
 
 *.egg-info/
+*.egg/
 .idea/
 htmlcov/
 build/

@@ -108,5 +108,12 @@ class Request(object):
         """Returns the request method"""
         return self.env['REQUEST_METHOD']
 
+    @property
+    def remote_addr(self):
+        if 'HTTP_X_FORWARDED_FOR' in self.env:
+            return self.env['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
+        else:
+            return self.env['REMOTE_ADDR']
+
     def add_response_callback(self, function):
         self.resp_callbacks.append(function)
