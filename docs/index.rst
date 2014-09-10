@@ -73,4 +73,65 @@ and provide ``map_connect()`` with a controller and an action, where action is t
     #now register your controller with Distill
     app.add_controller('homecontroller', HomeController)
 
+Middleware
+==========
 
+You can define multiple middleware that will be called either before or after the action registered for a response
+
+There are two main ways of registering middleware, either passing a callable to ``app.use()``, which will register a middleware
+to be used for every request, or using the before or after decorator, which will only affect requests that use the decorated
+method
+
+.. code-block:: python
+
+    from distill.application import Distill
+
+    def before_middleware(request, response):
+        print("This method will be called before every request")
+
+    def after_middleware(request, response):
+        print("This method will be called after every request")
+
+    app = Distill()
+    app.use(before_middleware)
+    app.use(after_middleware, before=False)
+
+Using ``app.use()`` you can define multiple middleware, which will be called in succession based on the order they are
+added
+
+.. code-block:: python
+
+    from distill.application import Distill
+
+    def first_before(request, response):
+        print("This method will be called first before every request")
+
+    def second_before(request, response):
+        print("This method will be called second before every request")
+
+    app = Distill()
+    app.use(first_before)
+    app.use(second_before)
+
+Or using the decorator method:
+
+.. code-block:: python
+
+    from distill.application import Distill
+    from distill.decorators import before, after
+
+    def on_before(request, response):
+        print("This method will be called before the home method")
+
+    def on_after(request, response):
+        print("This method will be called after the home method")
+
+    @before(on_before)
+    @after(on_after)
+    def home(request, response):
+        return "Hello world"
+
+    app = Distill()
+    app.map_connect('home', '/', action=home)
+
+*Note: As of Distill 0.1.3 you may modify the response object in middleware, but the return value is ignored*
