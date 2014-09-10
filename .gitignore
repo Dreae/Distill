@@ -13,3 +13,4 @@ locustfile.py
 htmlcov/
 build/
 dist/
+docs/_build/

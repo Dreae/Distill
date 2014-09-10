@@ -85,8 +85,6 @@ class Distill(object):
         self._do_before(req, resp)
 
         context = self.map.match(req.path, env)
-        res = None
-
         if context is not None:
             req.matchdict = context
             if 'controller' in context and context['controller'] in self._controllers:
@@ -96,7 +94,7 @@ class Distill(object):
                     res = getattr(controller, context['action'])(req, resp)
                 else:
                     raise HTTPNotFound()
-            elif hasattr(context['action'], '__call__'):
+            elif callable(context['action']):
                 res = context['action'](req, resp)
             else:
                 raise HTTPNotFound()
@@ -176,10 +174,7 @@ class Distill(object):
             name: Name of the controller
             controller: Controller class
         """
-        if isclass(controller):
-            self._controllers[name] = controller
-        else:
-            self._controllers[name] = controller.__class__
+        self._controllers[name] = controller
 
     def on_except(self, exc, method):
         self._exc_listeners[exc] = method

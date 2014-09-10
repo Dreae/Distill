@@ -113,7 +113,6 @@ class TestApplication(unittest.TestCase):
         app.set_session_factory(UnencryptedLocalSessionStorage(app.settings))
         app.add_renderer('prettyjson', JSON(indent=4))
         app.add_controller('testcontroller', TestController)
-        app.add_controller('testcontroller2', TestController())
         app.on_except(HTTPBadRequest, bad_request)
         app.on_except(HTTPInternalServerError, handle_ise)
         app.map_connect('home', '/', action=GET_home, conditions={"method": ["GET"]})
@@ -122,7 +121,6 @@ class TestApplication(unittest.TestCase):
         app.map_connect('userinfo', '/:user/userinfo', action=userinfo)
         app.map_connect('ise', '/internalservererror', action=internal_server_error)
         app.map_connect('homecontroller', '/controller', action='GET_home', controller='testcontroller')
-        app.map_connect('homecontroller1', '/controller2', action='GET_home', controller='testcontroller2')
         app.map_connect('homecontroller1', '/controllerinit', action='GET_home', controller='testcontrollerinit')
         app.map_connect('homecontroller2', '/controllerNA', action='GET_home', controller='nocontroller')
         app.map_connect('homecontroller3', '/actionNA', action='noaction', controller='testcontroller')
@@ -153,12 +151,6 @@ class TestApplication(unittest.TestCase):
         resp, body = self.simulate_request(app, 'GET', '/editresp', None, '')
         self.assertEqual(resp.status, '719 I am not a teapot')
         self.assertEqual(body, 'Hello')
-
-        resp, body = self.simulate_request(app, 'GET', '/controller2', None, '')
-        self.assertIn('X-Before', resp.headers)
-        self.assertIn('X-After', resp.headers)
-        data = json.loads(body)
-        self.assertTrue(data['data'])
 
         resp, body = self.simulate_request(app, 'GET', '/badrequest', None, '')
         data = json.loads(body)
