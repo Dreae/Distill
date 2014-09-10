@@ -9,7 +9,7 @@ Installation
 
 Distill can be installed from PyPi with pip::
 
-    $ pip install distill
+    $ pip install distill-framework
 
 
 Getting Started
