@@ -13,10 +13,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-import sphinx_rtd_theme
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
