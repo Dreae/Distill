@@ -135,3 +135,43 @@ Or using the decorator method:
     app.map_connect('home', '/', action=home)
 
 *Note: As of Distill 0.1.3 you may modify the response object in middleware, but the return value is ignored*
+
+Handling Exceptions
+===================
+
+Distill allows you to define methods that will handle any exceptions your app may encounter.  This allows you to generate
+customized error pages to display to users, or to sepecify custom logic to be executed in the event of an error.
+
+Defining an error handler is simple:
+
+.. code-block:: python
+
+    from distill.application import Distill
+    from distill.exceptions import HTTPNotFound
+    from distill.renderers import renderer
+
+    @renderer('404.mako')
+    def on_404(request, response):
+        # Exception handlers behave exactly like
+        # request methods
+        return {'msg': "Whoops, page not found"}
+
+    app = Distill()
+    app.on_except(HTTPNoFound, on_404)
+
+Note that by default the response will contain the HTTP status code for the encountered error.  If this is undesirable
+you can modify the response directly, or return a new response:
+
+.. code-block:: python
+
+    @renderer('404.mako')
+    def on_404(request, response):
+        # This handler will set the HTTP status
+        # code to 200 rather than returning a
+        # 404 to the client
+        response.status = "200 OK"
+        return {'msg': "Whoops, page not found"}
+
+    def on_401(request, response):
+        # Useful for redirecting users to authenticate
+        return HTTPFound(location='https://yoursite/login')

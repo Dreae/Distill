@@ -72,6 +72,8 @@ ALLOWED_CHRS += '0123456789'
 
 def parse_query_string(query):
     """Parses an HTTP query string into a dict"""
+    if not '=' in query:
+        return query
     params = {}
     q = query
     if PY2:  # pragma: no cover
