@@ -3,7 +3,7 @@
 #
 import re
 import time
-from distill import PY2
+from distill import PY2, PY3
 
 
 class cached_property(object):  # pragma: no cover
@@ -72,10 +72,15 @@ ALLOWED_CHRS += '0123456789'
 
 def parse_query_string(query):
     """Parses an HTTP query string into a dict"""
-    if not '=' in query:
+    q = query
+
+    if PY3:  # pragma: no cover
+        if type(q) == bytes:
+            q = query.decode('ascii')
+
+    if not '=' in q:
         return query
     params = {}
-    q = query
     if PY2:  # pragma: no cover
         q = query.decode('ascii')
     for k, v in _QS_RE.findall(q):

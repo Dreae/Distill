@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='distill_framework',
-    version='0.1.4',
+    version='0.1.5',
     packages=['distill'],
     url='https://github.com/Dreae/Distill',
     license='MIT License',
@@ -12,7 +12,7 @@ setup(
     install_requires=['mako', 'routes'],
     test_suite='nose.collector',
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.6",
@@ -24,6 +24,7 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
+        "Topic :: Software Development :: Libraries :: Application Frameworks",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ]
