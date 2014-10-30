@@ -3,6 +3,7 @@ from mako.lookup import TemplateLookup
 from distill import PY2
 import json
 from distill.exceptions import HTTPInternalServerError
+from distill.response import Response
 
 
 class RenderFactory(object):
@@ -80,6 +81,8 @@ def renderer(template):
         @wraps(method)
         def _call(*args):
             data = method(*args)
+            if isinstance(data, Response):
+                return data
             if len(args) == 2:
                 return RenderFactory.render(template, data, *args)
             else:
