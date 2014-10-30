@@ -41,12 +41,17 @@ class TestRenderers(unittest.TestCase):
         def fake_on_get_non_json_obj(request, response):
             return not_json_obj()
 
+        @renderer('json')
+        def fake_on_return_response(request, response):
+            return Response("719 I am not a teapot")
+
         resp = Response()
         rendered = fake_on_get_json_obj(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
         data = json.loads(rendered)
         self.assertEqual(data['name'], 'Foobar')
         self.assertRaises(HTTPInternalServerError, fake_on_get_non_json_obj, None, None)
+        self.assertIsInstance(fake_on_return_response(None, None), Response)
 
     def test_file_templates(self):
         RenderFactory.create(
@@ -55,6 +60,7 @@ class TestRenderers(unittest.TestCase):
         @renderer('test.mako')
         def fake_on_get_json(request, response):
             return {"user": "Foobar"}
+
 
         resp = Response()
         rendered = fake_on_get_json(None, resp)
