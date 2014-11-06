@@ -61,13 +61,18 @@ class Distill(object):
                 else:
                     resp.body = str(res)
 
+                self._do_after(req, resp)
                 resp.finalize(env.get('wsgi.file_wrapper'))
                 start_response(resp.status, resp.wsgi_headers)
                 return resp.iterable
             else:
+                self._do_after(req, ex)
                 start_response(ex.status, ex.wsgi_headers, sys.exc_info())
-                # By spec execution shouldn't get here, but incase it does
+                # By spec execution shouldn't get here, but in case it does
                 return []  # pragma: no cover
+
+        self._do_after(req, resp)
+        resp.finalize(env.get('wsgi.file_wrapper'))
 
         start_response(resp.status, resp.wsgi_headers)
         return resp.iterable
@@ -106,11 +111,9 @@ class Distill(object):
             elif res is not None:
                 resp.body = str(res)
 
-            self._do_after(req, resp)
         else:
             raise HTTPNotFound()
 
-        resp.finalize(env.get('wsgi.file_wrapper'))
         return resp
 
     def _do_before(self, req, resp):
