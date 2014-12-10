@@ -39,7 +39,11 @@ class RenderFactory(object):
             request: Current request
             response: Current response
         """
+
         if '.mako' == template.lower()[-5:]:
+            if type(data) != dict:
+                return data
+
             response.headers['Content-Type'] = 'text/html'
             data['req'] = request
             return self._template_lookup.get_template(template).render(**data)

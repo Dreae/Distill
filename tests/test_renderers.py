@@ -61,11 +61,19 @@ class TestRenderers(unittest.TestCase):
         def fake_on_get_json(request, response):
             return {"user": "Foobar"}
 
+        @renderer('test.mako')
+        def fake_on_get_string(request, response):
+            return "Hello world!"
+
 
         resp = Response()
         rendered = fake_on_get_json(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'text/html')
         self.assertEqual(rendered, 'Hello Foobar!')
+
+        resp = Response()
+        rendered = fake_on_get_string(None, resp)
+        self.assertEqual(rendered, 'Hello world!')
 
     def test_add_renderer(self):
         RenderFactory.create({})

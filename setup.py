@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='distill_framework',
-    version='0.1.7',
+    version='0.1.8',
     packages=['distill'],
     url='https://github.com/Dreae/Distill',
     license='MIT License',
