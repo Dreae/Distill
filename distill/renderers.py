@@ -120,11 +120,11 @@ class JSON(object):
             response: The current response
 
         """
-        if type(data) in [dict, list]:
-            response.headers['Content-Type'] = 'application/json'
-            return self.serializer(data, **self.kw)
-        elif hasattr(data, 'json'):
-            response.headers['Content-Type'] = 'application/json'
-            return self.serializer(data.json(request), **self.kw)
-        else:
-            raise HTTPInternalServerError(description="{0} is not JSON serializable".format(data.__repr__()))
+        response.headers['Content-Type'] = 'application/json'
+
+        def default(obj):
+            if hasattr(obj, 'json'):
+                return obj.json(request)
+            else:
+                raise TypeError('%r is not JSON serializable' % obj)
+        return self.serializer(data, default=default, **self.kw)

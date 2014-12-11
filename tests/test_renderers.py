@@ -50,7 +50,7 @@ class TestRenderers(unittest.TestCase):
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
         data = json.loads(rendered)
         self.assertEqual(data['name'], 'Foobar')
-        self.assertRaises(HTTPInternalServerError, fake_on_get_non_json_obj, None, None)
+        self.assertRaises(TypeError, fake_on_get_non_json_obj, None, Response())
         self.assertIsInstance(fake_on_return_response(None, None), Response)
 
     def test_file_templates(self):
