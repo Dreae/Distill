@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 try:
     import testtools as unittest
 except ImportError:
@@ -101,3 +102,27 @@ class TestRequest(unittest.TestCase):
         req = Request(fake_env, app)
         self.assertEqual(req.POST['files'].filename, 'file1.txt')
         self.assertEqual(req.POST['files'].file.read(), b'Hello world')
+
+    def test_json(self):
+        json = b'{"foo": "bar"}'
+        fake_env = {'wsgi.input': BytesIO(json), 'wsgi.errors': None, 'wsgi.url_scheme': 'https',
+                    'CONTENT_LENGTH': len(json), 'PATH_INFO': '/foo/bar', 'SERVER_PORT': '8080',
+                    'CONTENT_TYPE': 'application/json', 'HTTP_CONTENT_TYPE': 'application/json',
+                    'HTTP_X_H_Test': 'Foobar', 'QUERY_STRING': '', 'HTTP_HOST': 'foobar.baz:8080',
+                    'SERVER_NAME': 'foobar.baz', 'HTTP_FOO': 'bar', 'SCRIPT_NAME': '/some/script/dir',
+                    'REQUEST_METHOD': 'POST'}
+
+        class FakeApp(object):
+            def __init__(self, settings):
+                self.settings = settings
+                self.map = None
+
+        app = FakeApp({})
+        req = Request(fake_env, app)
+        self.assertEqual(req.json_body, {"foo": "bar"})
+
+        fake_env['wsgi.input'] = StringIO(json.decode())
+
+        app = FakeApp({})
+        req = Request(fake_env, app)
+        self.assertEqual(req.json_body, {"foo": "bar"})

@@ -1,7 +1,8 @@
 import cgi
+import json
 import re
 from routes import URLGenerator
-from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict
+from distill.helpers import cached_property, parse_query_string, CaseInsensitiveDict, text_
 
 
 class Request(object):
@@ -64,6 +65,8 @@ class Request(object):
                               else (field.name, field) for field in self.POST.list])
         else:
             self.POST = {}
+            if self.stream is not None:
+                self.body = self.stream.read(self.content_length)
 
     @cached_property()
     def headers(self):
@@ -79,6 +82,10 @@ class Request(object):
                 headers[k[5:].replace('_', '-')] = v
 
         return headers
+
+    @cached_property()
+    def json_body(self):
+        return json.loads(text_(self.body))
 
     @cached_property()
     def cookies(self):

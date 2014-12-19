@@ -174,3 +174,13 @@ class CaseInsensitiveDict(dict):
 
     def __contains__(self, item):
         return item.lower() in self._dict
+
+
+def text_(s):  # pragma: no cover
+    if PY3:
+        if type(s) == bytes:
+            return s.decode()
+    elif PY2:
+        if type(s) == str:
+            return s.decode()
+    return s
