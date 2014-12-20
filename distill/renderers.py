@@ -26,7 +26,7 @@ class RenderFactory(object):
         self._template_lookup.module_directory = settings.get('distill.document_root', '')
         self._renderers = {}
 
-    def __call__(self, template, data, request, response):
+    def __call__(self, template, data, request, response, **rkwargs):
         """ Actually render the response
 
         Notes:
@@ -48,7 +48,7 @@ class RenderFactory(object):
             data['req'] = request
             return self._template_lookup.get_template(template).render(**data)
         elif template in self._renderers:
-            return self._renderers[template](data, request, response)
+            return self._renderers[template](data, request, response, **rkwargs)
         raise HTTPInternalServerError(description="Missing template file {0}".format(template))
 
     def register_renderer(self, name, serializer):
@@ -62,9 +62,9 @@ class RenderFactory(object):
         RenderFactory._factory.register_renderer('json', JSON())
 
     @staticmethod
-    def render(template, data, request, response):
+    def render(template, data, request, response, **rkwargs):
         """Returns the rendered response to a template"""
-        return RenderFactory._factory(template, data, request, response)
+        return RenderFactory._factory(template, data, request, response, **rkwargs)
 
     @staticmethod
     def add_renderer(name, serializer):
@@ -72,7 +72,7 @@ class RenderFactory(object):
         RenderFactory._factory.register_renderer(name, serializer)
 
 
-def renderer(template):
+def renderer(template, **rkwargs):
     """ Decorator for rendering responses
 
     Notes:
@@ -83,14 +83,14 @@ def renderer(template):
     """
     def _render(method):
         @wraps(method)
-        def _call(*args):
-            data = method(*args)
+        def _call(*args, **kwargs):
+            data = method(*args, **kwargs)
             if isinstance(data, Response):
                 return data
             if len(args) == 2:
-                return RenderFactory.render(template, data, *args)
+                return RenderFactory.render(template, data, *args, **rkwargs)
             else:
-                return RenderFactory.render(template, data, args[1], args[2])
+                return RenderFactory.render(template, data, args[1], args[2], **rkwargs)
         return _call
     return _render
 
@@ -105,7 +105,7 @@ class JSON(object):
         self.serializer = serializer
         self.kw = kwargs
 
-    def __call__(self, data, request, response):
+    def __call__(self, data, request, response, pad=False):
         """ Render the response to the template
 
         Notes:
@@ -127,4 +127,6 @@ class JSON(object):
                 return obj.json(request)
             else:
                 raise TypeError('%r is not JSON serializable' % obj)
+        if pad:
+            return ")]}',\n" + self.serializer(data, default=default, **self.kw)
         return self.serializer(data, default=default, **self.kw)

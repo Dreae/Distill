@@ -45,6 +45,10 @@ class TestRenderers(unittest.TestCase):
         def fake_on_return_response(request, response):
             return Response("719 I am not a teapot")
 
+        @renderer('json', pad=True)
+        def test_secure_pad(request, response):
+            return {"foo": "bar"}
+
         resp = Response()
         rendered = fake_on_get_json_obj(None, resp)
         self.assertEqual(resp.headers['Content-Type'], 'application/json')
@@ -52,6 +56,11 @@ class TestRenderers(unittest.TestCase):
         self.assertEqual(data['name'], 'Foobar')
         self.assertRaises(TypeError, fake_on_get_non_json_obj, None, Response())
         self.assertIsInstance(fake_on_return_response(None, None), Response)
+
+        resp = Response()
+        rendered = test_secure_pad(None, resp)
+        self.assertEqual(resp.headers['Content-Type'], 'application/json')
+        self.assertEqual(rendered, ")]}',\n" + json.dumps({"foo": "bar"}))
 
     def test_file_templates(self):
         RenderFactory.create(
